@@ -1,0 +1,94 @@
+name: Build
+
+on:
+  push:
+    branches: ['main']
+    paths-ignore:
+      - 'core/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Egy futás = egy job. Ez a legfontosabb: a GitHub macOS-gépein sor van, és ha egy
+# futásban négy job verseng, egyik sem indul el. Egy job viszont rendszeresen kap
+# gépet (ezt mérve: macos-15-intel kétszer is azonnal).
+#
+# Ez a build a régi SDK-val is lefut, mert COMPAT_SDK-val fordít: Liquid Glass helyett
+# a tömör felület kerül bele. Az iOS 26-os build külön workflow (ios26.yml).
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # 2. Kompatibilitási build: régebbi SDK-val, a deployment targetet a helyi SDK-ra
+  #    veszi. Nem Liquid Glass, de IPA lesz belőle minden iOS 18+ készülékre —
+  #    és ami a legfontosabb: ez a job adja a fordítóhibákat, ha van.
+  # ───────────────────────────────────────────────────────────────────────────
+  compat:
+    name: IPA (kompatibilitás)
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Lower deployment target to this SDK
+        run: |
+          set -euo pipefail
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "::notice::kompatibilitási build, deployment target: $SDK"
+          sed -i '' -e "s/iOS: \"26.0\"/iOS: \"$SDK\"/" -e "s/deploymentTarget: \"26.0\"/deploymentTarget: \"$SDK\"/g" project.yml
+          grep -n 'deploymentTarget' project.yml || true
+
+      - name: XcodeGen
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null; then HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen; fi
+          xcodegen generate
+          xcodebuild -list -project CortexAI.xcodeproj
+
+      - name: Build (errors as annotations)
+        run: |
+          # Régi SDK-ban nincs .glassEffect szimbólum → COMPAT_SDK: tömör felület.
+          set -uo pipefail
+          set +e   # a runner bash -e-vel fut; a hiba-feldolgozásnak le kell futnia
+          xcodebuild build -project CortexAI.xcodeproj -scheme CortexAI \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS=COMPAT_SDK \
+            -derivedDataPath build > build.log 2>&1
+          STATUS=$?
+          tail -40 build.log
+          if [ $STATUS -ne 0 ]; then
+            # A futtatás naplóját API-ból nem tudjuk letölteni, ezért a hibás részt
+            # feltesszük egy nyilvános paszta-oldalra, és a linket annotációba tesszük.
+            LINK=$(curl -sS -F "file=@build.log" -F "expires=72" https://0x0.st || true)
+            echo "::notice::build log: $LINK"
+            grep -i "error" build.log | grep -v "^ld: warning" | head -9 | while IFS= read -r line; do
+              echo "::error::${line:0:900}"
+            done || true
+            echo "::error::xcodebuild exit $STATUS — teljes napló: $LINK"
+            exit $STATUS
+          fi
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -1)
+          test -n "$APP"
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          VER=$(grep -m1 'MARKETING_VERSION' project.yml | sed -E 's/.*"([^"]+)".*/\1/')
+          BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION' project.yml | sed -E 's/.*"([^"]+)".*/\1/')
+          mkdir -p out/Payload && cp -R "$APP" out/Payload/
+          cd out && NAME="CortexAI-$VER-b$BUILD-ios${SDK%%.*}-compat-unsigned.ipa" && zip -qry "$NAME" Payload && rm -rf Payload
+          shasum -a 256 "$NAME" | tee "$NAME.sha256"
+          ls -lh "$NAME"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CortexAI-ipa
+          path: out/*

@@ -1,0 +1,80 @@
+name: iOS 26 build
+
+# Kézzel indítható (Actions → iOS 26 build → Run workflow). Ez adja a Liquid Glass-os
+# IPA-t, de Xcode 26 / iOS 26 SDK kell hozzá. Ha a runner SDK-ja régebbi, a job
+# inkább meg sem próbálja: érthető üzenettel megáll.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios26:
+    name: iOS 26 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Newest Xcode
+        run: |
+          set -euo pipefail
+          BEST=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$BEST" ]; then sudo xcode-select -s "$BEST"; fi
+          xcodebuild -version
+          echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Require iOS 26 SDK
+        run: |
+          set -euo pipefail
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          MAJ=${SDK%%.*}
+          if [ "$MAJ" -lt 26 ]; then
+            echo "::error::iOS SDK $SDK < 26.0 — ez a runner nem tud Liquid Glass buildet. Használd a kompatibilitási workflow-t, vagy egy Macet Xcode 26-tal."
+            exit 1
+          fi
+
+      - name: XcodeGen
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null; then HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen; fi
+          xcodegen generate
+
+      - name: Build (errors as annotations)
+        run: |
+          set -uo pipefail
+          set +e   # a runner bash -e-vel fut; a hiba-feldolgozásnak le kell futnia
+          xcodebuild build -project CortexAI.xcodeproj -scheme CortexAI \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            -derivedDataPath build > build.log 2>&1
+          STATUS=$?
+          tail -40 build.log
+          if [ $STATUS -ne 0 ]; then
+            LINK=$(curl -sS -F "file=@build.log" -F "expires=72" https://0x0.st || true)
+            echo "::notice::build log: $LINK"
+            grep -i "error" build.log | head -9 | while IFS= read -r line; do echo "::error::${line:0:900}"; done || true
+            exit $STATUS
+          fi
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -1)
+          test -n "$APP"
+          VER=$(grep -m1 'MARKETING_VERSION' project.yml | sed -E 's/.*"([^"]+)".*/\1/')
+          BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION' project.yml | sed -E 's/.*"([^"]+)".*/\1/')
+          mkdir -p out/Payload && cp -R "$APP" out/Payload/
+          cd out && NAME="CortexAI-$VER-b$BUILD-ios26-unsigned.ipa" && zip -qry "$NAME" Payload && rm -rf Payload
+          shasum -a 256 "$NAME" | tee "$NAME.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CortexAI-ios26
+          path: out/*

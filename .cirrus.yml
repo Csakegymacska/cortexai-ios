@@ -1,0 +1,21 @@
+# Második út az IPA-hoz, ha a GitHub Actions nem ad macOS gépet.
+#
+# A Cirrus CI nyílt repókra ingyen ad macOS VM-et. Bekapcsolás:
+#   1. https://cirrus-ci.com → Sign in with GitHub → engedélyezd a cortexai-ios repót
+#   2. push (vagy „Run" gomb) → a build lefut, az IPA a job artifactja
+#
+# Ugyanazt a szkriptet hívja, amit helyben is futtathatsz: ./Scripts/build_ipa.sh
+# Az app iOS 26-os API-kat használ, ezért Xcode 26 kell — a Tahoe kép hozza.
+
+task:
+  name: CortexAI IPA
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-tahoe-xcode:latest   # macOS 26 + Xcode 26
+  timeout_in: 60m
+  build_script: ./Scripts/build_ipa.sh
+  verify_script: |
+    ls -lh out/
+    shasum -a 256 out/*.ipa
+  artifacts:
+    path: "out/*.ipa"
+    expire_in: 30 days
