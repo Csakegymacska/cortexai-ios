@@ -106,7 +106,28 @@ struct MessageRow: View {
                 Spacer(minLength: 0)
             }
 
-            if let rows = message.twoUp, !rows.isEmpty {
+            if message.imageStatus == "pending" {
+                GeneratingImageCard()
+            } else if message.imageStatus == "succeeded" {
+                if let url = message.imageURL {
+                    ChatImageCard(urlString: url)
+                }
+                if !message.text.isEmpty {
+                    MarkdownText(text: message.text)
+                }
+            } else if message.imageStatus == "failed" {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.danger)
+                    MarkdownText(text: message.text.isEmpty ? "A kép most nem készült el." : message.text)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Theme.danger.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Theme.danger.opacity(0.3), lineWidth: 1))
+            } else if let rows = message.twoUp, !rows.isEmpty {
                 TwoUpGrid(rows: rows)
             } else if message.isEmpty && message.isStreaming {
                 SkeletonLines()
@@ -149,7 +170,7 @@ struct MessageRow: View {
                 .transition(.opacity)
             }
 
-            if !message.isStreaming && (!message.isEmpty || !(message.twoUp ?? []).isEmpty) {
+            if !message.isStreaming && (!message.isEmpty || !(message.twoUp ?? []).isEmpty || message.imageStatus == "succeeded") {
                 MessageActionsBar(message: message)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 ReplyFooter(message: message)
@@ -371,5 +392,139 @@ enum Haptics {
     }
     static func success() {
         MainActor.assumeIsolated { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    }
+}
+
+
+// MARK: - Képgenerálás a chatben
+
+/// A Void Canvas renderelése közbeni animált hely: pulzáló színfoltok + átfutó
+/// fénycsík (shimmer), hogy látszódjon, dolgozik a motor.
+struct GeneratingImageCard: View {
+    @State private var sweep: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.surfaceRaised)
+
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                Canvas { ctx, size in
+                    let blobs: [(Color, Double, Double, Double)] = [
+                        (Theme.violet, 0.32, 0.62, 0.55),
+                        (Theme.cyan, 0.68, 0.36, 0.45),
+                        (Theme.violetSoft, 0.5, 0.5, 0.62),
+                    ]
+                    for (i, blob) in blobs.enumerated() {
+                        let (color, bx, by, speed) = blob
+                        let x = size.width * (bx + 0.14 * sin(t * speed + Double(i) * 2.1))
+                        let y = size.height * (by + 0.12 * cos(t * speed * 0.8 + Double(i) * 1.7))
+                        let r = size.width * 0.34
+                        let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
+                        ctx.fill(
+                            Path(ellipseIn: rect),
+                            with: .radialGradient(
+                                Gradient(colors: [color.opacity(0.5), color.opacity(0)]),
+                                center: CGPoint(x: x, y: y), startRadius: 0, endRadius: r)
+                        )
+                    }
+                }
+            }
+
+            GeometryReader { geo in
+                LinearGradient(colors: [.clear, .white.opacity(0.18), .clear],
+                               startPoint: .leading, endPoint: .trailing)
+                    .frame(width: geo.size.width * 0.55)
+                    .offset(x: -geo.size.width * 0.6 + sweep * geo.size.width * 1.75)
+            }
+
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .stroke(Theme.violet.opacity(0.25), lineWidth: 3)
+                        .frame(width: 34, height: 34)
+                    Circle()
+                        .trim(from: 0, to: 0.28)
+                        .stroke(Theme.violetSoft, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: 34, height: 34)
+                        .rotationEffect(.degrees(sweep * 360))
+                }
+                Text("Cortex Void Canvas")
+                    .font(.system(size: 11.5, weight: .heavy))
+                    .tracking(0.9)
+                    .foregroundStyle(.white.opacity(0.85))
+                Text("A kép készül…")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+        }
+        .frame(height: 210)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .strokeBorder(Theme.hairline, lineWidth: 1))
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.7).repeatForever(autoreverses: false)) {
+                sweep = 1
+            }
+        }
+    }
+}
+
+/// A kész kép a chatben: lekerekített kártya, betöltéskor finom átúszással.
+struct ChatImageCard: View {
+    let urlString: String
+    @State private var appeared = false
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.surfaceRaised)
+            if let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .opacity(appeared ? 1 : 0)
+                            .onAppear {
+                                withAnimation(.easeOut(duration: 0.45)) { appeared = true }
+                            }
+                    case .failure:
+                        VStack(spacing: 8) {
+                            Image(systemName: "photo")
+                                .font(.system(size: 22, weight: .light))
+                                .foregroundStyle(Theme.textFaint)
+                            Text("A kép nem tölthető be.")
+                                .font(.system(size: 11.5))
+                                .foregroundStyle(Theme.textFaint)
+                        }
+                    default:
+                        ProgressView().tint(Theme.violetSoft)
+                    }
+                }
+                .padding(4)
+            }
+        }
+        .frame(minHeight: 160)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .strokeBorder(Theme.hairline, lineWidth: 1))
+        .overlay(alignment: .bottomTrailing) {
+            if let url = URL(string: urlString) {
+                ShareLink(item: url) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.text)
+                        .frame(width: 30, height: 30)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay(Circle().strokeBorder(Theme.hairline, lineWidth: 1))
+                }
+                .buttonStyle(LiquidPress())
+                .padding(10)
+            }
+        }
+        .shadow(color: Theme.violet.opacity(0.22), radius: 16, y: 6)
     }
 }
