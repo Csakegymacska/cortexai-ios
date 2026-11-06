@@ -8,13 +8,15 @@ import androidx.compose.ui.graphics.Color
 
 // A Cortex paletta — megegyezik az iOS app lila-fekete világával.
 val Ink = Color(0xFF0B0B0F)
-val InkSurface = Color(0xFF141419)
-val InkRaised = Color(0xFF1C1C23)
-val Violet = Color(0xFF8B5CF6)
-val VioletSoft = Color(0xFFA78BFA)
+val InkSurface = Color(0xFF0D0D12)
+val InkRaised = Color(0xFF17171D)
+val InkCard = Color(0xFF22222B)
+val Violet = Color(0xFF7C5CFF)
+val VioletSoft = Color(0xFFB7A5FF)
 val Cyan = Color(0xFF22D3EE)
-val TextDim = Color(0xFFB4B4C2)
-val TextFaint = Color(0xFF6E6E7C)
+val Ok = Color(0xFF34C759)
+val TextDim = Color(0xFFC6C7D2)
+val TextFaint = Color(0xFF8E8E99)
 val Danger = Color(0xFFEF4444)
 
 private val CortexColors = darkColorScheme(
