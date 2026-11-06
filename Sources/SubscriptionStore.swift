@@ -27,9 +27,9 @@ enum CortexPlan: String, CaseIterable, Identifiable {
 
     var blurb: String {
         switch self {
-        case .free: return "Napi 5 millió token · 2 API-kulcs"
-        case .pro: return "Napi 50 millió token · 10 API-kulcs"
-        case .max: return "Napi 500 millió token · 40 API-kulcs"
+        case .free: return "5 million tokens / day · 2 API keys"
+        case .pro: return "50 million tokens / day · 10 API keys"
+        case .max: return "500 million tokens / day · 40 API keys"
         }
     }
 
@@ -59,16 +59,16 @@ enum CortexPlan: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Emberi formátum: „50 millió", „2,2 milliárd".
+    /// Emberi formátum: „50 million", „2,2 billion".
     var quotaText: String {
         let f = NumberFormatter()
         f.numberStyle = .decimal
         f.locale = Locale(identifier: "hu_HU")
         f.maximumFractionDigits = 1
         if dailyTokens >= 1_000_000_000 {
-            return (f.string(from: NSNumber(value: Double(dailyTokens) / 1_000_000_000)) ?? "?") + " milliárd"
+            return (f.string(from: NSNumber(value: Double(dailyTokens) / 1_000_000_000)) ?? "?") + " billion"
         }
-        return (f.string(from: NSNumber(value: Double(dailyTokens) / 1_000_000)) ?? "?") + " millió"
+        return (f.string(from: NSNumber(value: Double(dailyTokens) / 1_000_000)) ?? "?") + " million"
     }
 }
 
@@ -98,10 +98,10 @@ final class SubscriptionStore: ObservableObject {
         f.numberStyle = .decimal
         f.locale = Locale(identifier: "hu_HU")
         if left >= 1_000_000_000 {
-            return (f.string(from: NSNumber(value: Double(left) / 1_000_000_000)) ?? "?") + " milliárd token maradt"
+            return (f.string(from: NSNumber(value: Double(left) / 1_000_000_000)) ?? "?") + " billion token maradt"
         }
         if left >= 1_000_000 {
-            return (f.string(from: NSNumber(value: Double(left) / 1_000_000)) ?? "?") + " millió token maradt"
+            return (f.string(from: NSNumber(value: Double(left) / 1_000_000)) ?? "?") + " million token maradt"
         }
         return (f.string(from: NSNumber(value: left)) ?? "?") + " token maradt"
     }
@@ -172,20 +172,20 @@ final class SubscriptionStore: ObservableObject {
     /// Revolut: beváltókód aktiválása (a szerver emeli a tier-t, utána frissítünk).
     func redeem(code: String) async -> String? {
         guard let url = URL(string: "https://cortanime.eu/api/sub/redeem"),
-              let key = APIKeyVault.shared.currentKey else { return "Nincs API-kulcs beállítva." }
+              let key = APIKeyVault.shared.currentKey else { return "No API key set." }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["code": code.trimmingCharacters(in: .whitespaces)])
-        guard let (data, resp) = try? await URLSession.shared.data(for: req) else { return "Hálózati hiba." }
+        guard let (data, resp) = try? await URLSession.shared.data(for: req) else { return "Network error." }
         let obj = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
         if (resp as? HTTPURLResponse)?.statusCode == 200 {
             await refreshUsage()
             await refreshEntitlement()
             return nil // siker
         }
-        return (obj["message"] as? String) ?? (obj["error"] as? [String: Any])?["message"] as? String ?? "A kód nem érvényes."
+        return (obj["message"] as? String) ?? (obj["error"] as? [String: Any])?["message"] as? String ?? "This code is not valid."
     }
 
     static let revolutLink = "https://revolut.me/tibikegh12"
@@ -193,7 +193,7 @@ final class SubscriptionStore: ObservableObject {
     func purchase(_ plan: CortexPlan) async {
         guard let id = plan.productID,
               let product = products.first(where: { $0.id == id }) else {
-            purchaseError = "Ez a csomag most nem vásárolható meg."
+            purchaseError = "This plan is not available for purchase right now."
             return
         }
         isPurchasing = true
@@ -209,7 +209,7 @@ final class SubscriptionStore: ObservableObject {
             case .userCancelled:
                 break
             case .pending:
-                purchaseError = "A vásárlás jóváhagyásra vár."
+                purchaseError = "The purchase is awaiting approval."
             @unknown default:
                 break
             }
