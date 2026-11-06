@@ -32,10 +32,12 @@ final class AccountStore: ObservableObject {
     func refresh() async {
         guard let req = request("/me") else { return }
         if let (data, resp) = try? await session.data(for: req),
-           (resp as? HTTPURLResponse)?.statusCode == 200,
-           let obj = try? JSONDecoder().decode([String: AccountUser].self, from: data),
-           let u = obj["user"] {
-            user = u
+           (resp as? HTTPURLResponse)?.statusCode == 200 {
+            let obj = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+            if let u = obj["user"] as? [String: Any],
+               let d = try? JSONSerialization.data(withJSONObject: u) {
+                user = try? JSONDecoder().decode(AccountUser.self, from: d)
+            }
         }
     }
 
@@ -69,7 +71,9 @@ final class AccountStore: ObservableObject {
             let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
             let obj = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
             if (200..<300).contains(code), let u = obj["user"] as? [String: Any] {
-                user = try? JSONSerialization.data(withJSONObject: u).flatMap { try? JSONDecoder().decode(AccountUser.self, from: $0) }
+                if let data = try? JSONSerialization.data(withJSONObject: u) {
+                    user = try? JSONDecoder().decode(AccountUser.self, from: data)
+                }
                 return true
             }
             lastError = (obj["error"] as? String) ?? (obj["message"] as? String) ?? "Sign-in failed (\(code))."
