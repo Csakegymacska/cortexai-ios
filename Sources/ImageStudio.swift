@@ -90,7 +90,7 @@ struct ImageStudioView: View {
         ("cinema", "Mozi", "film"),
         ("icon", "Ikon", "app.dashed"),
         ("render", "3D", "cube.transparent"),
-        ("sketch", "Vázlat", "pencil.and.outline"),
+        ("sketch", "Sketch", "pencil.and.outline"),
     ]
 
     var body: some View {
@@ -112,7 +112,7 @@ struct ImageStudioView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Kész") { dismiss() }
+                    Button("Done") { dismiss() }
                         .foregroundStyle(Theme.violetSoft)
                 }
             }
@@ -125,10 +125,10 @@ struct ImageStudioView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Kép a szavakból")
+            Text("Picture from words")
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(Theme.text)
-            Text("Írd le, mi legyen a képen — a Cortex Void Canvas megfesti.")
+            Text("Describe what should be in the picture — Cortex Void Canvas will paint it.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.textMuted)
         }
@@ -136,7 +136,7 @@ struct ImageStudioView: View {
 
     private var promptBox: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField("Fekete háttér, lila fénygyűrű, izzó gömb…", text: $canvas.prompt, axis: .vertical)
+            TextField("Black background, purple ring of light, glowing orb…", text: $canvas.prompt, axis: .vertical)
                 .lineLimit(3...6)
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.text)
@@ -184,7 +184,7 @@ struct ImageStudioView: View {
                 HStack(spacing: 8) {
                     Image(systemName: canvas.isBusy ? "hourglass" : "wand.and.stars")
                         .font(.system(size: 13, weight: .bold))
-                    Text(canvas.isBusy ? statusText : "Generálás")
+                    Text(canvas.isBusy ? statusText : "Generate")
                         .font(.system(size: 15, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity)
@@ -214,10 +214,10 @@ struct ImageStudioView: View {
 
     private var statusText: String {
         switch canvas.phase {
-        case .starting: return "Indítás…"
+        case .starting: return "Starting…"
         case .rendering(let s): return "Festés… \(s) s"
-        case .done: return "Kész"
-        default: return "Generálás"
+        case .done: return "Done"
+        default: return "Generate"
         }
     }
 
@@ -231,9 +231,9 @@ struct ImageStudioView: View {
                     case .success(let image):
                         image.resizable().scaledToFit()
                     case .failure:
-                        placeholder(text: "A kép nem tölthető be.", symbol: "exclamationmark.triangle")
+                        placeholder(text: "The image could not be loaded.", symbol: "exclamationmark.triangle")
                     default:
-                        placeholder(text: "Betöltés…", symbol: "photo")
+                        placeholder(text: "Loading…", symbol: "photo")
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -243,7 +243,7 @@ struct ImageStudioView: View {
                 )
                 HStack(spacing: 10) {
                     ShareLink(item: URL(string: url)!) {
-                        Label("Megosztás", systemImage: "square.and.arrow.up")
+                        Label("Share", systemImage: "square.and.arrow.up")
                             .font(.system(size: 13, weight: .semibold))
                             .padding(.horizontal, 14).padding(.vertical, 9)
                             .background(Theme.surface, in: Capsule())
@@ -269,7 +269,7 @@ struct ImageStudioView: View {
         case .starting, .rendering:
             placeholder(text: "A Cortex Void Canvas dolgozik…", symbol: "sparkles")
         case .idle:
-            placeholder(text: "Itt jelenik meg a kép.", symbol: "photo.on.rectangle.angled")
+            placeholder(text: "The image will appear here.", symbol: "photo.on.rectangle.angled")
         }
     }
 
@@ -294,7 +294,7 @@ struct ImageStudioView: View {
 
     private var galleryStrip: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Ebben a körben")
+            Text("In this round")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.textFaint)
             ScrollView(.horizontal, showsIndicators: false) {
