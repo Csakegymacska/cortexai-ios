@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct SettingsView: View {
     @Environment(AppState.self) private var state
@@ -8,6 +9,8 @@ struct SettingsView: View {
     @State private var health: CortexClient.Health?
     @State private var newMemory = ""
     @State private var showLogin = false
+    @State private var avatarItem: PhotosPickerItem?
+    @State private var avatarImage: UIImage?
     @StateObject private var account = AccountStore.shared
 
     private var orderedMemories: [MemoryNote] {
@@ -23,9 +26,32 @@ struct SettingsView: View {
                     Section("Account") {
                         if account.isLoggedIn {
                             HStack(spacing: 12) {
-                                Image(systemName: "person.crop.circle.fill")
-                                    .font(.system(size: 26))
-                                    .foregroundStyle(Theme.violetSoft)
+                                PhotosPicker(selection: $avatarItem, matching: .images) {
+                                    if let img = avatarImage {
+                                        Image(uiImage: img)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 40, height: 40)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .font(.system(size: 26))
+                                            .foregroundStyle(Theme.violetSoft)
+                                    }
+                                }
+                                .onChange(of: avatarItem) { _, item in
+                                    Task {
+                                        if let data = try? await item?.loadTransferable(type: Data.self) {
+                                            avatarImage = UIImage(data: data)
+                                            _ = await account.uploadAvatar(data)
+                                        }
+                                    }
+                                }
+                                .task {
+                                    if avatarImage == nil, let d = await account.fetchAvatar() {
+                                        avatarImage = UIImage(data: d)
+                                    }
+                                }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(account.displayName).font(.system(size: 14.5, weight: .semibold))
                                     Text(account.user?.email ?? "")
