@@ -26,7 +26,41 @@ final class AccountStore: ObservableObject {
     private static let base = "https://cortanime.eu/api/auth"
     private let session: URLSession = .shared
 
-    private init() {}
+    private static let sessionKey = "cx.session"
+    private static let userKey = "cx.user.snapshot"
+
+    private init() {
+        // A mentett munkamenet visszatöltése induláskor — ettől marad bejelentkezve.
+        if let snap = UserDefaults.standard.data(forKey: Self.userKey),
+           let u = try? JSONDecoder().decode(AccountUser.self, from: snap) {
+            user = u
+        }
+        let saved = Keychain.read(Self.sessionKey)
+        if !saved.isEmpty {
+            let cookie = HTTPCookie(properties: [
+                .domain: "cortanime.eu", .path: "/",
+                .name: "cx_session", .value: saved,
+                .secure: "TRUE",
+                .expires: Date().addingTimeInterval(7 * 86400),
+            ])
+            if let cookie { HTTPCookieStorage.shared.setCookie(cookie) }
+        }
+    }
+
+    /// Launch call: restores the session and validates it against the server.
+    func start() async {
+        if !Keychain.read(Self.sessionKey).isEmpty || user != nil {
+            await refresh()
+        }
+    }
+
+    private func persist() {
+        if let u = user, let data = try? JSONEncoder().encode(u) {
+            UserDefaults.standard.set(data, forKey: Self.userKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.userKey)
+        }
+    }
 
     /// Checks whether a session is still valid (called at launch).
     func refresh() async {
@@ -37,7 +71,14 @@ final class AccountStore: ObservableObject {
             if let u = obj["user"] as? [String: Any],
                let d = try? JSONSerialization.data(withJSONObject: u) {
                 user = try? JSONDecoder().decode(AccountUser.self, from: d)
+                persist()
+                return
             }
+        }
+        // A munkamenet már nem érvényes — tiszta állapot.
+        if user != nil {
+            user = nil
+            persist()
         }
     }
 
@@ -56,6 +97,43 @@ final class AccountStore: ObservableObject {
             return r
         }())
         user = nil
+        persist()
+        Keychain.delete(Self.sessionKey)
+        for c in HTTPCookieStorage.shared.cookies(for: URL(string: "https://cortanime.eu")!) ?? []
+        where c.name == "cx_session" {
+            HTTPCookieStorage.shared.deleteCookie(c)
+        }
+    }
+
+    /// Profilkép feltöltése (base64 a szervernek, ami tárolja és kiszolgálja).
+    func uploadAvatar(_ data: Data) async -> String? {
+        guard var req = request("/me/avatar") else { return "Hiba." }
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["image": data.base64EncodedString()])
+        do {
+            let (respData, resp) = try await session.data(for: req)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            if (200..<300).contains(code) {
+                var u = user
+                u?.avatar = "/api/me/avatar"
+                user = u
+                persist()
+                return nil
+            }
+            let obj = (try? JSONSerialization.jsonObject(with: respData) as? [String: Any]) ?? [:]
+            return (obj["message"] as? String) ?? "A feltöltés nem sikerült (\(code))."
+        } catch {
+            return "Network error."
+        }
+    }
+
+    /// A profilkép letöltése megjelenítéshez.
+    func fetchAvatar() async -> Data? {
+        guard let req = request("/me/avatar") else { return nil }
+        guard let (data, resp) = try? await session.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        return data
     }
 
     private func auth(_ path: String, body: [String: String]) async -> Bool {
@@ -73,6 +151,13 @@ final class AccountStore: ObservableObject {
             if (200..<300).contains(code), let u = obj["user"] as? [String: Any] {
                 if let data = try? JSONSerialization.data(withJSONObject: u) {
                     user = try? JSONDecoder().decode(AccountUser.self, from: data)
+                }
+                persist()
+                // A bejelentkezési cookie mentése — ettől marad meg a munkamenet.
+                if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://cortanime.eu")!) {
+                    for c in cookies where c.name == "cx_session" {
+                        Keychain.write(Self.sessionKey, c.value)
+                    }
                 }
                 return true
             }
