@@ -1,5 +1,6 @@
 // AgentLiveActivity — a Dynamic Island és a zárt képernyő megjelenítései.
 // Három island-formátum KÖTELEZŐ: minimal, compact (leading+trailing), expanded.
+// A hívási sorrend az SDK szerint: expanded → compactLeading → compactTrailing → minimal.
 import ActivityKit
 import SwiftUI
 import WidgetKit
@@ -42,9 +43,6 @@ struct AgentLiveActivity: Widget {
                         Spacer()
                     }
                 }
-            } minimal: {
-                RingIcon(working: context.state.state == "working")
-                    .frame(width: 22, height: 22)
             } compactLeading: {
                 RingIcon(working: context.state.state == "working")
                     .frame(width: 22, height: 22)
@@ -59,6 +57,9 @@ struct AgentLiveActivity: Widget {
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.7))
                 }
+            } minimal: {
+                RingIcon(working: context.state.state == "working")
+                    .frame(width: 22, height: 22)
             }
             .keylineTint(Color(red: 0.55, green: 0.4, blue: 0.98))
         }
@@ -91,7 +92,7 @@ struct RingIcon: View {
 
 /// Zárt képernyő-kártya.
 struct LockScreenView: View {
-    let state: AgentActivityAttributes.ContentState
+    let state: AgentContentState
     var body: some View {
         HStack(spacing: 12) {
             RingIcon(working: state.state == "working")
@@ -100,7 +101,7 @@ struct LockScreenView: View {
                 Text(AgentState(rawValue: state.state)?.label ?? "Idle")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Text(state.step.isEmpty ? "Cortex Agent for Arena" : state.step)
+                Text(state.step.isEmpty ? "Cortex Phantom Agent" : state.step)
                     .font(.caption.monospaced())
                     .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(1)
