@@ -22,7 +22,7 @@
 
 import { Brain } from "./brain.js";
 import { knowledgeLookup, knowledgeStore, logQuestion, readQuestions, knowledgePairs, resetKnowledge, search, news, topNews, compose, looksAnime, wantsFacts, wantsNews, newsSubject, fold } from "./phantom-search.js";
-import { appIpa, appIcon, appSource, appInstall, appStats } from "./app.js";
+import { appIpa, appIcon, appSource, appInstall, appStats, appBinary } from "./app.js";
 import { sponsorHit, sponsorStats } from "./sponsors.js";
 import { WEBCHAT_HTML } from "./webchat.js";
 import { sandboxReady, runSnippet, SANDBOX_INSTRUCTION } from "./sandbox.js";
@@ -2724,6 +2724,8 @@ export default {
     if (path === "/app/ipa" && (request.method === "GET" || request.method === "HEAD")) return appIpa(request, env, ctx);
     if (path === "/app/source.json" && request.method === "GET") return appSource(request, env, ctx);
     if (path === "/app/icon.png" && request.method === "GET") return appIcon(env);
+    if (path === "/app/apk" && (request.method === "GET" || request.method === "HEAD")) return appBinary(env, "android/CortexAI-1.0-android.apk", "CortexAI-1.0-android.apk");
+    if (path === "/app/win" && (request.method === "GET" || request.method === "HEAD")) return appBinary(env, "windows/CortexAI-1.0-windows.exe", "CortexAI-1.0-windows.exe");
     if (path === "/app/stats" && request.method === "GET") return appStats(env);
     if (path === "/sponsor/hit" && (request.method === "GET" || request.method === "POST")) return sponsorHit(request, env, ctx);
     if (path === "/sponsor/stats" && request.method === "GET") return sponsorStats(env);
