@@ -27,18 +27,18 @@ enum CortexPlan: String, CaseIterable, Identifiable {
 
     var blurb: String {
         switch self {
-        case .free: return "Napi 50 millió token · 2 API-kulcs"
-        case .pro: return "Napi 220 millió token · 10 API-kulcs"
-        case .max: return "Napi 2,2 milliárd token · 40 API-kulcs"
+        case .free: return "Napi 5 millió token · 2 API-kulcs"
+        case .pro: return "Napi 50 millió token · 10 API-kulcs"
+        case .max: return "Napi 500 millió token · 40 API-kulcs"
         }
     }
 
     /// Napi tokenkeret — ugyanaz a szám, amit a szerver kényszerít ki.
     var dailyTokens: Int {
         switch self {
-        case .free: return 50_000_000
-        case .pro: return 220_000_000
-        case .max: return 2_200_000_000
+        case .free: return 5_000_000
+        case .pro: return 50_000_000
+        case .max: return 500_000_000
         }
     }
 
@@ -168,6 +168,27 @@ final class SubscriptionStore: ObservableObject {
             plan = p
         }
     }
+
+    /// Revolut: beváltókód aktiválása (a szerver emeli a tier-t, utána frissítünk).
+    func redeem(code: String) async -> String? {
+        guard let url = URL(string: "https://cortanime.eu/api/sub/redeem"),
+              let key = APIKeyVault.shared.currentKey else { return "Nincs API-kulcs beállítva." }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["code": code.trimmingCharacters(in: .whitespaces)])
+        guard let (data, resp) = try? await URLSession.shared.data(for: req) else { return "Hálózati hiba." }
+        let obj = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        if (resp as? HTTPURLResponse)?.statusCode == 200 {
+            await refreshUsage()
+            await refreshEntitlement()
+            return nil // siker
+        }
+        return (obj["message"] as? String) ?? (obj["error"] as? [String: Any])?["message"] as? String ?? "A kód nem érvényes."
+    }
+
+    static let revolutLink = "https://revolut.me/tibikegh12"
 
     func purchase(_ plan: CortexPlan) async {
         guard let id = plan.productID,
