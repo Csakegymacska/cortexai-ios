@@ -195,6 +195,68 @@ final class AppState {
         }
     }
 
+    /// Képgenerálás a chatben: a kérés bekerül a beszélgetésbe, a válasz-buborék
+    /// pedig animált hellyel él, amíg a Void Canvas renderel — aztán megkapja a képet.
+    func sendImage(_ prompt: String) {
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let id = activeConversationID,
+              let index = conversations.firstIndex(where: { $0.id == id }) else { return }
+        if conversations[index].title == "New chat" {
+            conversations[index].title = Conversation.title(from: trimmed)
+        }
+        conversations[index].messages.append(ChatMessage(role: .user, text: trimmed))
+        let placeholder = ChatMessage(role: .assistant, text: "", imageStatus: "pending")
+        conversations[index].messages.append(placeholder)
+        conversations[index].updatedAt = Date()
+        save()
+        let messageID = placeholder.id
+        lastError = nil
+        isStreaming = true
+        phase = .thinking
+        streamTask?.cancel()
+        streamTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let jobID = try await CortexClient.shared.createImage(prompt: trimmed, style: "vivid")
+                var status = "processing"
+                var url: String?
+                for _ in 0..<60 {
+                    try await Task.sleep(nanoseconds: 2_500_000_000)
+                    let job = try await CortexClient.shared.imageStatus(id: jobID)
+                    status = job.status
+                    if status == "succeeded" || status == "failed" { url = job.url; break }
+                }
+                await MainActor.run {
+                    self.applyImageResult(messageID: messageID, conversationID: id,
+                                          status: status == "succeeded" ? "succeeded" : "failed",
+                                          url: url)
+                }
+            } catch {
+                await MainActor.run {
+                    self.applyImageResult(messageID: messageID, conversationID: id,
+                                          status: "failed", url: nil)
+                }
+            }
+        }
+    }
+
+    /// A kép-render vége: a buborék megkapja a képet (vagy a hibaüzenetet).
+    private func applyImageResult(messageID: UUID, conversationID: UUID, status: String, url: String?) {
+        guard let ci = conversations.firstIndex(where: { $0.id == conversationID }),
+              let mi = conversations[ci].messages.firstIndex(where: { $0.id == messageID }) else {
+            isStreaming = false; phase = .idle; return
+        }
+        conversations[ci].messages[mi].imageStatus = status
+        conversations[ci].messages[mi].imageURL = url
+        if status == "failed" {
+            conversations[ci].messages[mi].text = "A kép most nem készült el. Próbáld újra kicsit később."
+        }
+        conversations[ci].updatedAt = Date()
+        isStreaming = false
+        phase = .idle
+        save()
+    }
+
     /// A csatolt képek a munkamenet memóriájában élnek: a mentett beszélgetésbe nem
     /// kerülnek bele, mert egy base64 kép több megabájt, és nem kell visszatölteni.
     private(set) var attachedImages: [UUID: [ChatImage]] = [:]
