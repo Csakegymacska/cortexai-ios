@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var confirmErase = false
     @State private var health: CortexClient.Health?
     @State private var newMemory = ""
+    @State private var showLogin = false
+    @StateObject private var account = AccountStore.shared
 
     private var orderedMemories: [MemoryNote] {
         state.memories.sorted { $0.createdAt > $1.createdAt }
@@ -18,6 +20,48 @@ struct SettingsView: View {
             ZStack {
                 AuroraBackground(intensity: 0.6)
                 Form {
+                    Section("Account") {
+                        if account.isLoggedIn {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .font(.system(size: 26))
+                                    .foregroundStyle(Theme.violetSoft)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(account.displayName).font(.system(size: 14.5, weight: .semibold))
+                                    Text(account.user?.email ?? "")
+                                        .font(.system(size: 11.5)).foregroundStyle(Theme.textFaint)
+                                }
+                                Spacer()
+                                Button("Sign Out") {
+                                    Task { await account.logout() }
+                                }
+                                .font(.system(size: 13))
+                                .tint(Theme.violetSoft)
+                            }
+                        } else {
+                            Button {
+                                showLogin = true
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "person.crop.circle.badge.plus")
+                                        .frame(width: 26)
+                                        .foregroundStyle(Theme.violetSoft)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Sign in or create an account")
+                                            .font(.system(size: 14.5, weight: .semibold))
+                                        Text("Syncs your subscription, API keys and AI profile")
+                                            .font(.system(size: 11.5))
+                                            .foregroundStyle(Theme.textFaint)
+                                            .multilineTextAlignment(.leading)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Theme.textFaint)
+                                }
+                            }
+                        }
+                    }
                     Section("Model") {
                         ForEach(CortexTier.all) { tier in
                             Button {
@@ -54,7 +98,7 @@ struct SettingsView: View {
                                     .frame(width: 26)
                                     .foregroundStyle(Theme.violetSoft)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Előfizetés")
+                                    Text("Subscription")
                                         .font(.system(size: 14.5, weight: .semibold))
                                     Text(SubscriptionStore.shared.tier.blurb)
                                         .font(.system(size: 11.5))
@@ -143,11 +187,11 @@ struct SettingsView: View {
                         Text("Get Cortex AI")
                     }
 
-                    Section("Újdonságok") {
+                    Section("What's new") {
                         Button {
                             showFeatures = true
                         } label: {
-                            Label("Mi az új ebben a verzióban", systemImage: "sparkles")
+                            Label("What's new in this version", systemImage: "sparkles")
                                 .foregroundStyle(Theme.text)
                         }
                     }
@@ -199,6 +243,9 @@ struct SettingsView: View {
         .sheet(isPresented: $showFeatures) {
             FeaturesView().presentationBackground(Theme.ink)
         }
+        .sheet(isPresented: $showLogin) {
+            LoginView()
+        }
         .preferredColorScheme(.dark)
     }
 
@@ -208,9 +255,4 @@ struct SettingsView: View {
         state.addMemory(clean)
         newMemory = ""
     }
-}
-
-extension Bundle {
-    var shortVersion: String { infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0" }
-    var buildNumber: String { infoDictionary?["CFBundleVersion"] as? String ?? "1" }
 }
