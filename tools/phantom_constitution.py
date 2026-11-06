@@ -31,7 +31,15 @@ from pathlib import Path
 
 ROOT = Path("/home/user")
 sys.path.insert(0, str(ROOT / "tools"))
-from ai_translate import call_gemini  # noqa: E402
+from ai_translate import call_gemini, call_glm45  # noqa: E402
+
+
+def chat(system: str, user: str, max_tokens: int = 800, temperature: float = 0.3) -> str:
+    """Gemini az első, GLM a tartalék — a kvóta ne állítsa meg a kört."""
+    try:
+        return call_gemini(system, user, max_tokens=max_tokens, temperature=temperature)
+    except Exception:  # noqa: BLE001
+        return call_glm45(system, user, max_tokens=max_tokens, temperature=temperature)
 
 CONSTITUTION_PATH = ROOT / "cortex-phantom/CORTEX-KONSTICIO.md"
 
@@ -83,7 +91,7 @@ def jp(s: str) -> str:
 
 
 def gen_response(prompt: str, temperature: float) -> str:
-    out = call_gemini(
+    out = chat(
         "Te a Cortex nevű magyar AI-asszisztens vagy. Természetes, beszélt "
         "magyaron válaszolsz, tömören és életszerűen, töltelékszavak nélkül.",
         prompt, max_tokens=700, temperature=temperature,
@@ -93,7 +101,7 @@ def gen_response(prompt: str, temperature: float) -> str:
 
 def judge_pair(prompt: str, a: str, b: str, principle: str) -> str:
     """A konstíció egy elve alapján melyik válasz a jobb? 'A' vagy 'B'."""
-    out = call_gemini(
+    out = chat(
         "Te egy nyelvi bíró vagy. Ítéld meg, melyik válasz felel meg jobban az "
         "adott elvnek. CSAK egy betűt írj: A vagy B.",
         f"ELV: {principle}\n\nKÉRDÉS: {prompt}\n\nVÁLASZ A:\n{a}\n\nVÁLASZ B:\n{b}",
@@ -109,7 +117,7 @@ def judge_pair(prompt: str, a: str, b: str, principle: str) -> str:
 
 def critique_and_revise(prompt: str, response: str, principle: str) -> tuple[str, str]:
     """SL-CAI lépés: kritika + javított válasz. (kritika, javított) jön vissza."""
-    out = call_gemini(
+    out = chat(
         "Te a Cortex nevű magyar AI-asszisztens vagy. Előbb egy mondatban "
         "kritizáld a választ az ELV alapján (K: ...), majd írd át úgy, hogy "
         "tökéletesen megfeleljen neki. A formátum szigorú:\n"
