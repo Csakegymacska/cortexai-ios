@@ -1,7 +1,7 @@
 // ActivityManager — a Live Activity indítása/frissítése.
 // V1: helyi frissítés az app polljából (BGAppRefresh is frissíti a háttérben).
 // V2: APNs liveactivity push a szerverről — lásd ARENA-NATIVE.md.
-import ActivityKit
+@preconcurrency import ActivityKit
 import Foundation
 
 @MainActor
