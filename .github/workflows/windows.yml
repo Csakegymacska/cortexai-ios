@@ -16,6 +16,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cortexai-windows -> target
 
       - name: Build
         run: cargo build --release
