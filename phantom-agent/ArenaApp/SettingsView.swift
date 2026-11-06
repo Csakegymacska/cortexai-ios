@@ -41,8 +41,9 @@ struct SettingsView: View {
                             Text(p.label).tag(p)
                         }
                     }
-                } footer: {
                     Text("Cortex Phantom is our own AI (cortanime.eu). Arena API uses your key below.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Arena API") {
@@ -68,8 +69,9 @@ struct SettingsView: View {
                     TextField("Model", text: $model)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                } footer: {
-                    Text("Get a key at platform.arena.ai → Keys. The key is stored in the iOS Keychain only.")
+                    Text("Get a key at platform.arena.ai -> Keys. The key is stored in the iOS Keychain only.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Agent status bridge") {
