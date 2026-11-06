@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Vászon: a hosszú válasz külön lapon, szerkeszthetően. Nem másolás — itt át is
+/// Canvas: a hosszú válasz külön lapon, szerkeszthetően. Nem másolás — itt át is
 /// lehet írni, és onnan mehet tovább megosztásba vagy jegyzetbe.
 struct CanvasSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -26,7 +26,7 @@ struct CanvasSheet: View {
                 )
                 .padding(Theme.gutter)
                 .background(Theme.ink)
-                .navigationTitle("Vászon")
+                .navigationTitle("Canvas")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -36,13 +36,13 @@ struct CanvasSheet: View {
                             copied = true
                             Task { try? await Task.sleep(for: .seconds(1.4)); copied = false }
                         } label: {
-                            Label(copied ? "Kimásolva" : "Másolás", systemImage: copied ? "checkmark" : "doc.on.doc")
+                            Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         HStack(spacing: 14) {
                             ShareLink(item: text) { Image(systemName: "square.and.arrow.up") }
-                            Button("Kész") { dismiss() }
+                            Button("Done") { dismiss() }
                         }
                     }
                 }
