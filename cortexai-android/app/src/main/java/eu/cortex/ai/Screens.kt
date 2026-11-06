@@ -96,8 +96,9 @@ private fun CortexBottomBar(activity: MainActivity) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
-                    tab.icon, contentDescription = tab.label,
-                    Modifier.size(22.dp),
+                    imageVector = tab.icon,
+                    contentDescription = tab.label,
+                    modifier = Modifier.size(22.dp),
                     tint = if (active) Violet else Color(0xFF6B6B78),
                 )
                 Spacer(Modifier.height(3.dp))
@@ -309,7 +310,14 @@ fun ChatScreen() {
                     .background(InkCard)
                     .border(1.dp, Color(0xFF2A2A35), RoundedCornerShape(13.dp)),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Default.Add, "More", Modifier.size(18.dp), tint = Color(0xFFB9BAC6)) }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "More",
+                    modifier = Modifier.size(18.dp),
+                    tint = Color(0xFFB9BAC6),
+                )
+            }
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
@@ -329,7 +337,11 @@ fun ChatScreen() {
                 modifier = Modifier.size(40.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = Violet),
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Send", Modifier.size(18.dp))
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = "Send",
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
@@ -577,7 +589,12 @@ fun LiveScreen() {
                     Text(title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text(time, color = TextFaint, fontSize = 11.sp)
                 }
-                Icon(Icons.Default.PlayCircle, null, Modifier.size(20.dp), tint = Violet)
+                Icon(
+                    imageVector = Icons.Default.PlayCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = Violet,
+                )
             }
         }
     }
@@ -769,8 +786,10 @@ fun ProfileScreen(activity: MainActivity) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    if (sel) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                    null, tint = if (sel) Violet else TextFaint, Modifier.size(18.dp),
+                    imageVector = if (sel) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (sel) Violet else TextFaint,
                 )
                 Spacer(Modifier.width(11.dp))
                 Column(Modifier.weight(1f)) {
