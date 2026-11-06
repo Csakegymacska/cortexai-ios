@@ -9,13 +9,15 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Cortex AI",
         "width": 1280,
         "height": 840,
         "minWidth": 420,
         "minHeight": 600,
         "theme": "Dark",
-        "url": "https://cortanime.eu/ai"
+        "decorations": false,
+        "resizable": true
       }
     ],
     "security": {
