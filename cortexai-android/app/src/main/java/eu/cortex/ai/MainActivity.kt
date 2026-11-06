@@ -10,7 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import eu.cortex.ai.ui.CortexTheme
 import kotlinx.coroutines.launch
 
-enum class Screen { Chat, Login, Subscription, Settings }
+enum class Screen { Chat, Images, Live, Anime, Profile, Login }
 
 class MainActivity : ComponentActivity() {
 
@@ -23,6 +23,11 @@ class MainActivity : ComponentActivity() {
         val jar = PrefsCookieJar(applicationContext)
         Api.init(jar)
         Api.apiKey = getSharedPreferences("cx.prefs", MODE_PRIVATE).getString("apiKey", "") ?: ""
+
+        // Képernyőkép-vezérlés: --es screen <Tab> — a teszt/fotó futásokhoz.
+        intent?.getStringExtra("screen")?.let { name ->
+            runCatching { screen = Screen.valueOf(name) }
+        }
 
         setContent {
             CortexTheme {
