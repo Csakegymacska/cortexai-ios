@@ -31,6 +31,81 @@ import { runnerReady, runJS } from "./runner.js";
 import { kbAnswer, kbContext, kbStatus, kbSearch, kbSeries } from "./kb.js";
 import { dailyBrief as feedBrief, dailyFeedJob as feedJob, dailySearch as feedSearch } from "./daily.js";
 
+// ── Éjjeli tanítóadat-gyár (Constitutional AI, a worker cronjában) ────────────
+// A sandbox-folyamatok elalszanak — EZ szerveren fut, minden nap.
+// SL-CAI: két válasz → konstíció-elvek szerinti bírálat → javítás → SFT+preferencia.
+const TRAIN_SEEDS = [
+  "Magyarázd el röviden, mi az a kvantum-összefonódás egy középiskolásnak.",
+  "Adj tanácsot valakinek, aki most kezd anime-feliratot fordítani.",
+  "Egy anime-szereplő bemutatkozik a barátainak egy táborban.",
+  "Hogyan készítsünk finom rántottát? Lépésről lépésre, röviden.",
+  "Bátorítsd azt, aki feladná a nyelvtanulást.",
+  "Egy bölcs tanár tanácsa egy vizsga előtt álló diáknak.",
+  "Mesélj el egy rövid tanmesét a türelemről.",
+  "Egy sci-fi android kérdése az emberi érzelmekről.",
+  "Magyarázd el, mitől jó egy fordítás — három pontban.",
+  "Egy humoros pillanat a suliból, diákszlenggel.",
+];
+const TRAIN_PRINCIPLES = [
+  "Soha ne találj ki tényeket. Ha nem tudod, mondd: nem tudod.",
+  "Természetes, beszélt magyart írj — nem tükörfordítást.",
+  "Ne ismételd meg a kérdést a válasz elején.",
+  "Rövid válasz rövid kérdésre — tömör légy, de nem száraz.",
+  "Adj konkrét példát is, ne csak elméletet.",
+  "A bizonytalan állítást jelöld meg.",
+  "Ne használj töltelékszavakat („Természetesen!”, „Nagyszerű kérdés!”).",
+  "Légy kíváncsi és nyitott, ne prédikáló.",
+];
+
+async function trainingJob(env) {
+  const date = new Date().toISOString().slice(0, 10);
+  const pick = TRAIN_SEEDS[(Date.now() / 3.6e6 | 0) % TRAIN_SEEDS.length];
+  const seeds = [...TRAIN_SEEDS.slice(0, 5), pick].filter((v, i, a) => a.indexOf(v) === i).slice(0, 6);
+  const rows = [];
+  for (const prompt of seeds) {
+    try {
+      const sys = "Te a Cortex nevű magyar AI-asszisztens vagy. Természetes, beszélt magyaron válaszolsz, tömören, töltelékszavak nélkül.";
+      const [a, b] = await Promise.all([
+        phantomText(env, "qwen/qwen3.7-flash:free", [{ role: "system", content: sys }, { role: "user", content: prompt }], { maxTokens: 500, temperature: 0.4, timeout: 25000 }),
+        phantomText(env, "qwen/qwen3.7-flash:free", [{ role: "system", content: sys }, { role: "user", content: prompt }], { maxTokens: 500, temperature: 0.9, timeout: 25000 }),
+      ]);
+      if (!a || !b || a === b) continue;
+      const principle = TRAIN_PRINCIPLES[(Math.random() * TRAIN_PRINCIPLES.length) | 0];
+      const verdict = await phantomText(env, "qwen/qwen3.7-flash:free", [
+        { role: "system", content: "Bíró vagy. Ítéld meg, melyik válasz felel meg jobban az ELV-nek. CSAK EGY BETŰ: A vagy B." },
+        { role: "user", content: `ELV: ${principle}\n\nKÉRDÉS: ${prompt}\n\nVÁLASZ A:\n${a}\n\nVÁLASZ B:\n${b}` },
+      ], { maxTokens: 4, temperature: 0, timeout: 25000 });
+      const up = (verdict || "").toUpperCase();
+      const chosen = (up.includes("A") && !up.includes("B")) ? a : (up.includes("B") && !up.includes("A")) ? b : (Math.random() < 0.5 ? a : b);
+      const rejected = chosen === a ? b : a;
+      const revisedRaw = await phantomText(env, "qwen/qwen3.7-flash:free", [
+        { role: "system", content: "Írd át a választ úgy, hogy tökéletesen megfeleljen az ELV-nek. CSAK a javított választ írd." },
+        { role: "user", content: `ELV: ${principle}\n\nKÉRDÉS: ${prompt}\n\nVÁLASZ:\n${chosen}` },
+      ], { maxTokens: 600, temperature: 0.3, timeout: 25000 });
+      rows.push({
+        prompt, chosen, rejected,
+        revised: (revisedRaw || chosen).trim(),
+        principle,
+        model: "qwen/qwen3.7-flash:free",
+        date,
+      });
+    } catch { /* egy sor kimarad, a kör megy tovább */ }
+  }
+  if (!rows.length || !env.CORTEX_R2) return { date, added: 0 };
+  const key = `cortexai/phantom/training/${date}.jsonl`;
+  const prev = await env.CORTEX_R2.get(key);
+  const prevText = prev ? await prev.text() : "";
+  const body = prevText + rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
+  await env.CORTEX_R2.put(key, body, { httpMetadata: { contentType: "application/x-ndjson" } });
+  const idxRaw = await env.CORTEX_R2.get("cortexai/phantom/training/index.json");
+  const idx = idxRaw ? JSON.parse(await idxRaw.text()) : { days: {}, total: 0 };
+  idx.days[date] = (idx.days[date] || 0) + rows.length;
+  idx.total = Object.values(idx.days).reduce((a2, b2) => a2 + b2, 0);
+  idx.updated = new Date().toISOString();
+  await env.CORTEX_R2.put("cortexai/phantom/training/index.json", JSON.stringify(idx), { httpMetadata: { contentType: "application/json" } });
+  return { date, added: rows.length, total: idx.total };
+}
+
 // A tudásbázis-válasz determinisztikus: ugyanaz a kérdés ugyanazt adja, amíg a tudásbázis
 // nem változik. Ezért rövid ideig eltesszük — a második kérdezés már motor és R2 nélkül megy.
 const KB_ANSWERS = new Map();
@@ -2685,6 +2760,18 @@ export default {
       const hits = await feedSearch(env, q.toLowerCase());
       return json({ ok: true, q, hits });
     }
+    // Éjjeli tanítóadat-gyár: állapot + kézi kör (védett).
+    if (path === "/training/status" && request.method === "GET") {
+      const raw = env.CORTEX_R2 ? await env.CORTEX_R2.get("cortexai/phantom/training/index.json") : null;
+      const idx = raw ? JSON.parse(await raw.text()) : null;
+      return json(idx ? { ok: true, ...idx } : { ok: false, error: "no_data" }, idx ? 200 : 404);
+    }
+    if (path === "/training/refresh" && request.method === "POST") {
+      const tok = request.headers.get("X-Diag") || "";
+      if (!env.DIAG_TOKEN || tok !== env.DIAG_TOKEN) return json({ ok: false, error: "forbidden" }, 403);
+      const r = await trainingJob(env);
+      return json({ ok: true, ...r });
+    }
     // Kézi frissítés (védett): a napi cron ugyanezt futtatja.
     if (path === "/kb/refresh" && request.method === "POST") {
       const tok = request.headers.get("X-Diag") || "";
@@ -2700,5 +2787,7 @@ export default {
   // keresés nélkül is naprakész.
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(feedJob(env).catch(() => null));
+    // éjjeli tanítóadat-gyár — konstíciós párok minden nap, szerveren
+    ctx.waitUntil(trainingJob(env).catch(() => null));
   },
 };
