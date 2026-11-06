@@ -12,14 +12,14 @@
 const APP = {
   name: "Cortex AI",
   bundleId: "eu.cortex.ai",
-  version: "7.2",
-  build: "26",
-  versionDate: "2026-11-06T04:48:00Z",
+  version: "7.3",
+  build: "27",
+  versionDate: "2026-11-06T05:39:00Z",
   releaseDate: "2026-11-06",
   minOS: "26.5",
-  sizeBytes: 3428524,
+  sizeBytes: 3487747,
   developer: "OmegaTech x CortexAnime",
-  ipaKey: "cortexai/app/CortexAI-7.2-b26-ios26-unsigned.ipa",
+  ipaKey: "cortexai/app/CortexAI-7.3-b27-ios26-unsigned.ipa",
   iconKey: "cortexai/app/icon.png",
   signer: "https://applejr.net/#signer",
   site: "https://cortanime.eu",
@@ -289,6 +289,14 @@ function appInstall(request) {
     <p class="note">Upload the file to the signer, sign with your certificate, then install the signed result. Nothing of ours is involved in that step.</p>
   </div>
 
+  <h2 class="sec">Android and Windows</h2>
+  <div class="card">
+    <p>The same Cortex AI, on three platforms — one account everywhere.</p>
+    <a class="btn primary" href="/api/cortexai/app/apk" download>Download CortexAI-${APP.version}-android.apk</a>
+    <a class="btn primary" href="/api/cortexai/app/win" download>Download CortexAI-${APP.version}-windows.exe</a>
+    <p class="note">Android: open the APK on your phone and allow install from this source. Windows: run the exe — it opens the full Cortex AI app.</p>
+  </div>
+
   <h2 class="sec">What is inside</h2>
   <div class="card">
     <p>${DESCRIPTION}</p>
@@ -313,4 +321,19 @@ function appInstall(request) {
   });
 }
 
-export { APP, appIpa, appIcon, appSource, appInstall, appStats };
+// GET /app/apk, /app/win — a másik két platform buildje (R2-ből).
+async function appBinary(env, key, filename) {
+  if (!env.CORTEX_R2) return json({ ok: false, error: "storage_unavailable" }, 503);
+  const object = await env.CORTEX_R2.get(key);
+  if (!object) return json({ ok: false, error: "build_not_uploaded", expected: key }, 404);
+  return new Response(object.body, {
+    headers: {
+      ...CORS,
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+export { APP, appIpa, appIcon, appSource, appInstall, appStats, appBinary };
