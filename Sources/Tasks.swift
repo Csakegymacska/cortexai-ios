@@ -50,7 +50,7 @@ enum TaskNotifications {
         content.sound = .default
         content.userInfo = ["prompt": task.prompt, "task": task.id.uuidString]
         // A szöveg ne legyen semleges: a válasz is ott vár, ha rákattint.
-        content.subtitle = "A válasz már készül"
+        content.subtitle = "Your answer is on the way"
 
         var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: task.at)
         if task.repeats == .daily {
@@ -129,7 +129,7 @@ struct TasksView: View {
                         }
                     }
                     if denied {
-                        Text("Az értesítés nincs engedélyezve — a feladat mentve van, de a telefon nem fog szólni. Bekapcsolás: Beállítások → Cortex AI → Értesítések.")
+                        Text("Notifications are off — the task is saved, but your phone will stay silent. Turn them on: Settings → Cortex AI → Notifications.")
                             .font(.system(size: 11.5))
                             .foregroundStyle(Theme.danger.opacity(0.9))
                     }
@@ -139,7 +139,7 @@ struct TasksView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "plus")
-                            Text("Új feladat")
+                            Text("New task")
                         }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.text)
@@ -156,7 +156,7 @@ struct TasksView: View {
             .background(Theme.ink)
             .navigationTitle("Feladatok")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Kész") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
             .sheet(isPresented: $adding) { editor.presentationBackground(Theme.ink) }
             .task {
                 if !state.tasks.isEmpty {
@@ -170,10 +170,10 @@ struct TasksView: View {
 
     private var emptyCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Még nincs feladat")
+            Text("No tasks yet")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.text)
-            Text("Írj be egy kérdést, válassz időpontot — a Cortex akkor válaszol, amikor kell. Például: „Ma mi jön ki?” reggel 7:30-kor, minden nap.")
+            Text("Type a question, pick a time — Cortex answers when you need it. For example: “What comes out today?” at 7:30 every morning.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -208,9 +208,9 @@ struct TasksView: View {
             HStack(spacing: 7) {
                 chip(task.timeLabel, symbol: "clock")
                 if task.repeats == .daily { chip("naponta", symbol: "repeat") }
-                if task.isPast { chip("lejárt", symbol: "exclamationmark.circle") }
+                if task.isPast { chip("overdue", symbol: "exclamationmark.circle") }
                 Spacer(minLength: 0)
-                Button("Futtatás") {
+                Button("Run") {
                     dismiss()
                     state.runTask(task)
                 }
@@ -247,8 +247,8 @@ struct TasksView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    field("Megnevezés", text: $title, hint: "Reggeli adás")
-                    field("Kérdés", text: $prompt, hint: "Melyik anime jön ki ma?", axis: .vertical)
+                    field("Name", text: $title, hint: "Morning brief")
+                    field("Question", text: $prompt, hint: "Which anime comes out today?", axis: .vertical)
                     VStack(alignment: .leading, spacing: 6) {
                         Text("MIKOR").font(.system(size: 10, weight: .heavy)).tracking(1).foregroundStyle(Theme.textFaint)
                         DatePicker("", selection: $at, displayedComponents: [.date, .hourAndMinute])
@@ -257,7 +257,7 @@ struct TasksView: View {
                             .tint(Theme.violetSoft)
                     }
                     Toggle(isOn: $repeatsDaily) {
-                        Text("Minden nap ebben az időben")
+                        Text("Every day at this time")
                             .font(.system(size: 13.5))
                             .foregroundStyle(Theme.text)
                     }
@@ -266,7 +266,7 @@ struct TasksView: View {
                     Button {
                         Task { await save() }
                     } label: {
-                        Text("Mentés")
+                        Text("Save")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -280,10 +280,10 @@ struct TasksView: View {
                 .padding(Theme.gutter)
             }
             .background(Theme.ink)
-            .navigationTitle("Új feladat")
+            .navigationTitle("New task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Mégse") { adding = false } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { adding = false } }
             }
         }
     }
