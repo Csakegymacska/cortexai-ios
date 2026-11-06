@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Előfizetés
+// MARK: - Subscription
 //
 // A csomagok és a napi keret egy helyen. Az API-kulcsot a weben kell létrehozni —
 // innen egy gombbal nyílik meg a cortanime.eu/api-keys oldal.
@@ -31,11 +31,11 @@ struct SubscriptionView: View {
                 .padding(18)
             }
             .background(Theme.ink)
-            .navigationTitle("Előfizetés")
+            .navigationTitle("Subscription")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Kész") { dismiss() }.tint(Theme.violetSoft)
+                    Button("Done") { dismiss() }.tint(Theme.violetSoft)
                 }
             }
             .task {
@@ -71,7 +71,7 @@ struct SubscriptionView: View {
                         .font(.system(size: 11)).foregroundStyle(Theme.textFaint)
                 }
             }
-            Text("A keret a fiókodhoz tartozik, nem az eszközhöz. UTC éjfélkor áll vissza.")
+            Text("The quota belongs to your account, not your device. It resets at midnight UTC.")
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textFaint)
         }
         .padding(14)
@@ -81,21 +81,60 @@ struct SubscriptionView: View {
 
     // MARK: Csomagok
 
+    // MARK: Paywall (Apple-style)
+
+    @State private var selectedPlan: CortexPlan = .pro
+
     private var plans: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 16) {
+            VStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 26))
+                    .foregroundStyle(Theme.violetSoft)
+                Text("Cortex AI")
+                    .font(.system(size: 24, weight: .bold))
+                Text("Choose your plan. Cancel anytime.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textFaint)
+            }
+            .padding(.top, 6)
+
             ForEach(CortexPlan.allCases) { plan in
                 planRow(plan)
             }
+
             if let error = store.purchaseError {
                 Text(error).font(.system(size: 11)).foregroundStyle(.red.opacity(0.8))
             }
+
+            Button {
+                if selectedPlan == .free {
+                    Task { await store.restore() }
+                } else if let url = URL(string: SubscriptionStore.revolutLink) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text(selectedPlan == .free ? "Continue" : "Continue — pay with Apple Pay or card")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Theme.violet, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(.white)
+            }
+
+            HStack(spacing: 6) {
+                Button("Terms of Use") {}.font(.system(size: 10.5))
+                Text("·").foregroundStyle(Theme.textFaint)
+                Button("Privacy Policy") {}.font(.system(size: 10.5))
+            }
+            .foregroundStyle(Theme.textFaint)
+
             Button {
                 Task { await store.restore() }
             } label: {
-                Text("Vásárlások visszaállítása")
+                Text("Restore purchases")
                     .font(.system(size: 12)).foregroundStyle(Theme.textFaint)
             }
-            .padding(.top, 4)
         }
     }
 
@@ -103,20 +142,20 @@ struct SubscriptionView: View {
 
     private var revolutSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("REVOLUT FIZETÉS")
+            Text("PAY WITH REVOLUT")
                 .font(.system(size: 10, weight: .heavy)).tracking(0.8)
                 .foregroundStyle(Theme.textFaint)
-            Text("Fizess Revoluttal, majd a kapott kóddal aktiváld a csomagot. Az előfizetés azonnal emeli a napi keretet.")
+            Text("Pay with Revolut, then activate your plan with the code you receive. The subscription raises your daily quota instantly.")
                 .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
             Link(destination: URL(string: SubscriptionStore.revolutLink)!) {
-                Label("Megnyitás Revolutban", systemImage: "creditcard")
+                Label("Open in Revolut", systemImage: "creditcard")
                     .font(.system(size: 13, weight: .semibold))
                     .padding(.horizontal, 12).padding(.vertical, 9)
                     .background(Theme.violet.opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
                     .foregroundStyle(Theme.violetSoft)
             }
             HStack(spacing: 8) {
-                TextField("Beváltó kód (pl. CORTEXPRO1M)", text: $redeemCode)
+                TextField("Redemption code (e.g. CORTEXPRO1M)", text: $redeemCode)
                     .textFieldStyle(.plain)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.characters)
@@ -126,12 +165,12 @@ struct SubscriptionView: View {
                     redeeming = true
                     Task {
                         let err = await store.redeem(code: redeemCode)
-                        redeemMessage = err ?? "Sikeres aktiválás!"
+                        redeemMessage = err ?? "Activated successfully!"
                         redeeming = false
                     }
                 } label: {
                     if redeeming { ProgressView().tint(Theme.violetSoft) }
-                    else { Text("Beváltás").font(.system(size: 13, weight: .semibold)) }
+                    else { Text("Redeem").font(.system(size: 13, weight: .semibold)) }
                 }
                 .disabled(redeemCode.trimmingCharacters(in: .whitespaces).isEmpty || redeeming)
                 .buttonStyle(.borderedProminent)
@@ -149,54 +188,50 @@ struct SubscriptionView: View {
 
     private func planRow(_ plan: CortexPlan) -> some View {
         let active = store.plan == plan
-        return HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(plan.label).font(.system(size: 14.5, weight: .semibold))
-                    if active {
-                        Text("AKTÍV")
-                            .font(.system(size: 8.5, weight: .heavy))
-                            .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(Theme.cyan.opacity(0.16), in: RoundedRectangle(cornerRadius: 4))
-                            .foregroundStyle(Theme.cyan)
+        let selected = selectedPlan == plan
+        return Button {
+            selectedPlan = plan
+            Haptics.tap()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 19))
+                    .foregroundStyle(selected ? Theme.violetSoft : Theme.textFaint)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(plan.label).font(.system(size: 15, weight: .semibold))
+                        if active {
+                            Text("ACTIVE")
+                                .font(.system(size: 8.5, weight: .heavy))
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Theme.cyan.opacity(0.16), in: RoundedRectangle(cornerRadius: 4))
+                                .foregroundStyle(Theme.cyan)
+                        }
                     }
+                    Text(plan.blurb)
+                        .font(.system(size: 11)).foregroundStyle(Theme.textFaint)
+                        .multilineTextAlignment(.leading)
                 }
-                Text(plan.blurb)
-                    .font(.system(size: 11)).foregroundStyle(Theme.textFaint)
+                Spacer()
+                Text(plan == .free ? "Free" : (plan == .pro ? "1 990 Ft/mo" : "4 990 Ft/mo"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.text)
             }
-            Spacer()
-            if let id = plan.productID,
-               let product = store.products.first(where: { $0.id == id }) {
-                Button {
-                    Task { await store.purchase(plan) }
-                } label: {
-                    Text(product.displayPrice + "/hó")
-                        .font(.system(size: 12, weight: .semibold))
-                        .padding(.horizontal, 12).padding(.vertical, 7)
-                        .background(Theme.violet.opacity(0.9), in: Capsule())
-                        .foregroundStyle(.white)
-                }
-                .disabled(store.isPurchasing || active)
-            } else if plan == .free {
-                Text("alapból")
-                    .font(.system(size: 11)).foregroundStyle(Theme.textFaint)
-            } else {
-                Text("hamarosan")
-                    .font(.system(size: 11)).foregroundStyle(Theme.textFaint)
-            }
+            .padding(14)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16)
+                .stroke(selected ? Theme.violet.opacity(0.7) : Theme.hairline, lineWidth: selected ? 1.5 : 1))
         }
-        .padding(14)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(active ? Theme.violet.opacity(0.6) : Theme.hairline))
+        .buttonStyle(.plain)
     }
 
-    // MARK: API-kulcs
+    // MARK: API key
 
     private var apiKeys: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("API-kulcs")
+            Text("API key")
                 .font(.system(size: 13, weight: .semibold))
-            Text("A kulcsot a weben hozod létre — ott látod egyszer, és onnan másolod ide.")
+            Text("You create the key on the web — it is shown once there, and you paste it here.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.textFaint)
 
             Button {
@@ -204,7 +239,7 @@ struct SubscriptionView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "safari")
-                    Text("Kulcs létrehozása a weben")
+                    Text("Create a key on the web")
                     Spacer()
                     Image(systemName: "arrow.up.right")
                 }
@@ -220,7 +255,7 @@ struct SubscriptionView: View {
                     Text(masked(key)).font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Theme.textMuted)
                     Spacer()
-                    Button("Törlés", role: .destructive) { vault.clear() }
+                    Button("Delete", role: .destructive) { vault.clear() }
                         .font(.system(size: 12))
                 }
                 .padding(12)
@@ -232,7 +267,7 @@ struct SubscriptionView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .font(.system(size: 12, design: .monospaced))
-                    Button("Mentés") {
+                    Button("Save") {
                         vault.save(keyDraft)
                         keyDraft = ""
                         showingKeyField = false
@@ -246,7 +281,7 @@ struct SubscriptionView: View {
                 Button {
                     showingKeyField = true
                 } label: {
-                    Text("Már van kulcsom — beillesztés")
+                    Text("I have a key — paste it")
                         .font(.system(size: 12)).foregroundStyle(Theme.textFaint)
                 }
             }
