@@ -74,7 +74,7 @@ struct ComposerView: View {
                 HStack(spacing: 7) {
                     Image(systemName: "photo.on.rectangle.angled.fill")
                         .font(.system(size: 11, weight: .bold))
-                    Text("Képgenerálás — Cortex Void Canvas")
+                    Text("Image generation — Cortex Void Canvas")
                         .font(.system(size: 11.5, weight: .semibold))
                     Spacer(minLength: 0)
                     Button {
@@ -197,30 +197,30 @@ struct ComposerView: View {
                 // a sorban csak a menü, a képolvasás, a mikrofon és a küldés marad.
                 Menu {
                     Button { pickPrompt = true; Haptics.tap() } label: {
-                        Label("Mentett utasítások", systemImage: "text.book.closed")
+                        Label("Saved prompts", systemImage: "text.book.closed")
                     }
                     Button { importingDocument = true; Haptics.tap() } label: {
-                        Label("Dokumentum csatolása", systemImage: "doc.badge.plus")
+                        Label("Attach document", systemImage: "doc.badge.plus")
                     }
                     Button {
                         imageMode.toggle()
                         if state.settings.hapticsEnabled { Haptics.tap() }
                     } label: {
-                        Label(imageMode ? "Képgenerálás be" : "Képgenerálás",
+                        Label(imageMode ? "Image generation on" : "Image generation",
                               systemImage: imageMode ? "photo.on.rectangle.angled.fill" : "photo.on.rectangle.angled")
                     }
                     Button {
                         researchMode.toggle()
                         if state.settings.hapticsEnabled { Haptics.tap() }
                     } label: {
-                        Label(researchMode ? "Mély kutatás be" : "Mély kutatás",
+                        Label(researchMode ? "Deep research on" : "Deep research",
                               systemImage: researchMode ? "binoculars.fill" : "binoculars")
                     }
                     Button {
                         state.agentMode.toggle()
                         if state.settings.hapticsEnabled { Haptics.tap() }
                     } label: {
-                        Label(state.agentMode ? "Ügynök mód be" : "Ügynök mód",
+                        Label(state.agentMode ? "Agent mode on" : "Agent mode",
                               systemImage: "point.3.connected.trianglepath.dotted")
                     }
                 } label: {
@@ -342,7 +342,7 @@ struct ComposerView: View {
                 documents.append(ChatFile(name: url.lastPathComponent, text: String(text.prefix(24_000))))
                 Haptics.success()
             } else {
-                state.lastError = "Ezt a fájlt nem sikerült kiolvasni. Próbáld PDF, TXT, MD vagy CSV-vel."
+                state.lastError = "Could not read this file. Try PDF, TXT, MD or CSV."
             }
         }
         .onChange(of: pickedImage) { _, item in
