@@ -2,10 +2,10 @@ import CoreSpotlight
 import Foundation
 import UniformTypeIdentifiers
 
-/// A beszélgetések bekerülnek a rendszer keresőjébe (Spotlight).
+/// A conversationek bekerülnek a rendszer keresőjébe (Spotlight).
 ///
 /// Nem küldünk semmit sehova: a CoreSpotlight helyben indexel, a találat koppintására az app
-/// nyílik meg a megfelelő beszélgetéssel. Az index a mentéssel együtt frissül, késleltetve,
+/// nyílik meg a megfelelő conversationsel. Az index a mentéssel együtt frissül, késleltetve,
 /// hogy folyó válasz közben ne dolgozzon feleslegesen.
 @MainActor
 enum Spotlight {
@@ -50,7 +50,7 @@ enum Spotlight {
             let attributes = CSSearchableItemAttributeSet(contentType: .text)
             attributes.title = row.title
             attributes.contentDescription = String(row.text.prefix(220))
-            attributes.keywords = ["Cortex", "chat", "beszélgetés"]
+            attributes.keywords = ["Cortex", "chat", "conversation"]
             return CSSearchableItem(
                 uniqueIdentifier: row.id,
                 domainIdentifier: domain,
