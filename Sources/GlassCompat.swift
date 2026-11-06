@@ -28,16 +28,10 @@ extension View {
             if interactive { glass = glass.interactive(true) }
             self.glassEffect(glass, in: shape)
         } else {
-            self.background {
-                shape.fill(.ultraThinMaterial)
-                    .overlay(shape.strokeBorder(tint?.opacity(0.35) ?? Theme.hairline, lineWidth: 1))
-            }
+            self.background { LayeredGlass(shape: shape, tint: tint) }
         }
         #else
-        self.background {
-            shape.fill(.ultraThinMaterial)
-                .overlay(shape.strokeBorder(tint?.opacity(0.35) ?? Theme.hairline, lineWidth: 1))
-        }
+        self.background { LayeredGlass(shape: shape, tint: tint) }
         #endif
     }
 
@@ -122,5 +116,30 @@ struct GradientEdge: ViewModifier {
 extension View {
     func gradientEdge(radius: CGFloat = Theme.radiusSmall, strength: Double = 0.18) -> some View {
         modifier(GradientEdge(radius: radius, strength: strength))
+    }
+}
+
+
+/// Réteges üveg-hatás 26 alá: anyag + fénymenetes felső réteg + gradiens él +
+/// mély árnyék. A 26-os igazi Liquid Glass helyett ez adja a minőséget ott,
+/// ahol a rendszer nem tud üveget (kompatibilitási build, régebbi iOS).
+struct LayeredGlass<S: InsettableShape>: View {
+    let shape: S
+    var tint: Color?
+
+    var body: some View {
+        shape.fill(.ultraThinMaterial)
+            .overlay(shape.fill(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.11), Color.white.opacity(0.02),
+                             (tint ?? Color.white).opacity(0.09)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)))
+            .overlay(shape.strokeBorder(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.24), Color.white.opacity(0.05),
+                             (tint ?? Color.white).opacity(0.14)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing),
+                lineWidth: 1))
+            .shadow(color: .black.opacity(0.38), radius: 11, y: 6)
     }
 }
