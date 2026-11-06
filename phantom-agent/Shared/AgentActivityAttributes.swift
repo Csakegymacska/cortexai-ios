@@ -3,7 +3,7 @@
 // maradjon, és a fordító számára egyértelmű legyen (explicit typealias + Sendable).
 import ActivityKit
 
-public struct AgentContentState: Codable, Equatable, Sendable {
+public struct AgentContentState: Codable, Hashable, Sendable {
     public var state: String
     public var step: String
     public var at: Int
