@@ -173,7 +173,7 @@ def main() -> None:
     ap.add_argument("--prompts", type=int, default=20)
     ap.add_argument("--input", type=str, default=None)
     ap.add_argument("--limit", type=int, default=30)
-    ap.add_argument("--out", type=str, default="/var/tmp/phantom-cortex")
+    ap.add_argument("--out", type=str, default="/home/user/cortex-phantom/data/training")
     ap.add_argument("--workers", type=int, default=3)
     a = ap.parse_args()
 
