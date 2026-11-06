@@ -50,7 +50,7 @@ jobs:
             [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
           }
           '@
-          $proc = Get-Process cortexai -ErrorAction SilentlyContinue | Select-Object -First 1
+          $proc = Get-Process | Where-Object { $_.Name -like "CortexAI*" -or $_.Name -eq "cortexai" } | Select-Object -First 1
           if ($proc -and $proc.MainWindowHandle -ne 0) {
             $hwnd = $proc.MainWindowHandle
             [Win32Shot]::SetForegroundWindow($hwnd) | Out-Null
@@ -80,7 +80,7 @@ jobs:
           $g2.Dispose()
           $bmp2.Save("$PWD\shots\windows-screen.png")
           Write-Host "Saved windows-screen.png"
-          Get-Process cortexai -ErrorAction SilentlyContinue | Stop-Process -Force
+          Get-Process | Where-Object { $_.Name -like "CortexAI*" -or $_.Name -eq "cortexai" } | Stop-Process -Force
 
       - uses: actions/upload-artifact@v4
         with:
