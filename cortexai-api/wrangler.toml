@@ -1,0 +1,11 @@
+name = "cortexai-api"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+routes = [
+  { pattern = "cortanime.eu/api/cortexai/*", zone_name = "cortanime.eu" }
+]
+
+[triggers]
+crons = ["0 4 * * *"]
