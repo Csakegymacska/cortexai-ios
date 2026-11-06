@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "identifier": "eu.cortex.ai.desktop",
   "build": {
-    "frontendDist": "../cortexai-windows/ui"
+    "frontendDist": "ui"
   },
   "app": {
     "windows": [
@@ -23,6 +23,7 @@
     }
   },
   "bundle": {
-    "active": false
+    "active": false,
+    "icon": ["cortex.ico"]
   }
 }
