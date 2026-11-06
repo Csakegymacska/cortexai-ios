@@ -7,6 +7,9 @@ import SwiftUI
 
 @MainActor
 struct SubscriptionView: View {
+    @State private var redeemCode = ""
+    @State private var redeemMessage: String?
+    @State private var redeeming = false
     @StateObject private var store = SubscriptionStore.shared
     @StateObject private var vault = APIKeyVault.shared
     @Environment(\.dismiss) private var dismiss
@@ -21,6 +24,7 @@ struct SubscriptionView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     usageCard
                     plans
+                    revolutSection
                     apiKeys
                     footnote
                 }
@@ -93,6 +97,54 @@ struct SubscriptionView: View {
             }
             .padding(.top, 4)
         }
+    }
+
+    // MARK: Revolut fizetés + kód beváltása
+
+    private var revolutSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("REVOLUT FIZETÉS")
+                .font(.system(size: 10, weight: .heavy)).tracking(0.8)
+                .foregroundStyle(Theme.textFaint)
+            Text("Fizess Revoluttal, majd a kapott kóddal aktiváld a csomagot. Az előfizetés azonnal emeli a napi keretet.")
+                .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
+            Link(destination: URL(string: SubscriptionStore.revolutLink)!) {
+                Label("Megnyitás Revolutban", systemImage: "creditcard")
+                    .font(.system(size: 13, weight: .semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Theme.violet.opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
+                    .foregroundStyle(Theme.violetSoft)
+            }
+            HStack(spacing: 8) {
+                TextField("Beváltó kód (pl. CORTEXPRO1M)", text: $redeemCode)
+                    .textFieldStyle(.plain)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.characters)
+                    .padding(10)
+                    .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
+                Button {
+                    redeeming = true
+                    Task {
+                        let err = await store.redeem(code: redeemCode)
+                        redeemMessage = err ?? "Sikeres aktiválás!"
+                        redeeming = false
+                    }
+                } label: {
+                    if redeeming { ProgressView().tint(Theme.violetSoft) }
+                    else { Text("Beváltás").font(.system(size: 13, weight: .semibold)) }
+                }
+                .disabled(redeemCode.trimmingCharacters(in: .whitespaces).isEmpty || redeeming)
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.violet)
+            }
+            if let msg = redeemMessage {
+                Text(msg)
+                    .font(.system(size: 12))
+                    .foregroundStyle(msg.contains("Sikeres") ? .green : Theme.textMuted)
+            }
+        }
+        .padding(14)
+        .background(Theme.surfaceRaised.opacity(0.5), in: RoundedRectangle(cornerRadius: 14))
     }
 
     private func planRow(_ plan: CortexPlan) -> some View {
