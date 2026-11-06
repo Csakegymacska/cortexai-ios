@@ -226,7 +226,7 @@ def run_episode(task: dict, principles: list[str]) -> dict | None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tasks", type=int, default=16)
-    ap.add_argument("--out", default="/var/tmp/phantom-gym")
+    ap.add_argument("--out", default="/home/user/cortex-phantom/data/training")
     a = ap.parse_args()
 
     principles = load_constitution()
