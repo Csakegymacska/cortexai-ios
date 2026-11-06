@@ -26,6 +26,7 @@ struct CortexAIApp: App {
         WindowGroup {
             RootView()
                 .environment(state)
+                .task { await AccountStore.shared.start() }
                 .preferredColorScheme(.dark)
                 .tint(Theme.violetSoft)
                 .onOpenURL { url in
