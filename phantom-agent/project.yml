@@ -1,0 +1,48 @@
+name: CortexPhantomAgent
+options:
+  bundleIdPrefix: eu.cortex
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_ALLOWED: "NO"        # unsigned build — a megszokott IPA-csatorna
+
+targets:
+  CortexPhantomAgent:
+    type: application
+    platform: iOS
+    sources: [ArenaApp, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: eu.cortex.phantom
+        PRODUCT_NAME: Cortex Phantom Agent
+        INFOPLIST_FILE: ArenaApp/Info.plist
+        SUPPORTS_MACCATALYST: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: PhantomWidget
+        embed: true
+
+  PhantomWidget:
+    type: app-extension
+    platform: iOS
+    sources: [ArenaWidget, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: eu.cortex.phantom.widget
+        INFOPLIST_FILE: ArenaWidget/Info.plist
+
+schemes:
+  CortexPhantomAgent:
+    build:
+      targets:
+        CortexPhantomAgent: all
+    archive:
+      config: Release
