@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Tudásbázis: mi van meg a Cortexben a katalógusról, és kereshető formában.
+/// Knowledge base: mi van meg a Cortexben a katalógusról, és kereshető formában.
 /// Nem chat — itt adatot lehet nézni: stúdió, rendező, évad, pontszám, részek.
 struct KnowledgeView: View {
     @Environment(\.dismiss) private var dismiss
@@ -50,7 +50,7 @@ struct KnowledgeView: View {
                     if loading {
                         HStack(spacing: 8) {
                             ProgressView().controlSize(.small).tint(Theme.textMuted)
-                            Text("Keresés…").font(.system(size: 12.5)).foregroundStyle(Theme.textFaint)
+                            Text("Search…").font(.system(size: 12.5)).foregroundStyle(Theme.textFaint)
                         }
                         .padding(.top, 4)
                     }
@@ -58,7 +58,7 @@ struct KnowledgeView: View {
                         resultRow(row)
                     }
                     if !results.isEmpty {
-                        Text("Koppints egy sorozatra — a kérdés a chatbe kerül.")
+                        Text("Tap a series — the question goes to the chat.")
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.textFaint)
                     }
@@ -66,9 +66,9 @@ struct KnowledgeView: View {
                 .padding(Theme.gutter)
             }
             .background(Theme.ink)
-            .navigationTitle("Tudásbázis")
+            .navigationTitle("Knowledge base")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Kész") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
             .task { await loadStatus() }
             .onChange(of: query) { _, value in
                 Task { await search(value) }
@@ -141,7 +141,7 @@ struct KnowledgeView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.textFaint)
-            TextField("Cím, stúdió vagy rendező…", text: $query)
+            TextField("Title, studio or director…", text: $query)
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.text)
                 .autocorrectionDisabled()
@@ -226,7 +226,7 @@ struct KnowledgeView: View {
                 } label: {
                     HStack(spacing: 7) {
                         Image(systemName: "bubble.left.and.text.bubble.right")
-                        Text("Kérdezz erről a chatben")
+                        Text("Ask about this in the chat")
                     }
                     .font(.system(size: 13.5, weight: .semibold))
                     .foregroundStyle(.white)
