@@ -86,18 +86,7 @@ jobs:
           target: google_apis
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            adb install -r out/CortexAI-1.0-android.apk
-            adb shell settings put global window_animation_scale 0
-            adb shell settings put global transition_animation_scale 0
-            adb shell settings put global animator_duration_scale 0
-            mkdir -p shots
-            for tab in Chat Images Live Anime Profile; do
-              adb shell am start -W -n eu.cortex.ai/.MainActivity --es screen $tab
-              sleep 8
-              adb exec-out screencap -p > shots/android-$tab.png
-              adb shell am force-stop eu.cortex.ai
-            done
+          script: adb install -r out/CortexAI-1.0-android.apk; mkdir -p shots; for tab in Chat Images Live Anime Profile; do adb shell am start -W -n eu.cortex.ai/.MainActivity --es screen $tab; sleep 9; adb exec-out screencap -p > shots/android-$tab.png; adb shell am force-stop eu.cortex.ai; done
 
       - uses: actions/upload-artifact@v4
         with:
