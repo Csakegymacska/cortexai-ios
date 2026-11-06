@@ -23,9 +23,9 @@ extension View {
     func cortexGlass<S: InsettableShape>(_ shape: S, tint: Color? = nil, interactive: Bool = false) -> some View {
         #if !COMPAT_SDK
         if #available(iOS 26.0, *) {
-            var glass: Glass = .regular
-            if let tint { glass = glass.tint(tint) }
-            if interactive { glass = glass.interactive(true) }
+            let base: Glass = .regular
+            let withTint = tint.map { base.tint($0) } ?? base
+            let glass = interactive ? withTint.interactive(true) : withTint
             self.glassEffect(glass, in: shape)
         } else {
             self.background { LayeredGlass(shape: shape, tint: tint) }
