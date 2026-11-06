@@ -86,7 +86,7 @@ struct DailyCard: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "bubble.left.and.bubble.right")
-                        Text("Kérdezz erről")
+                        Text("Ask about this")
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.violetSoft)
