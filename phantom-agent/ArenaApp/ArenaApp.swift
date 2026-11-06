@@ -9,7 +9,7 @@ struct ArenaApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        BGTaskScheduler.register(forTaskWithIdentifier: "eu.cortex.phantom.status", using: nil) { task in
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: "eu.cortex.phantom.status", using: nil) { task in
             Self.handleRefresh(task: task as! BGAppRefreshTask)
         }
     }
