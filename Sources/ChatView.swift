@@ -281,7 +281,10 @@ struct ChatView: View {
                         Label("Beszélgetés mentése (.md)", systemImage: "square.and.arrow.up")
                     }
                 }
-                Button { state.sheet = .studio } label: { Label("Image studio", systemImage: "wand.and.stars") }
+                Button {
+                    state.composerDraft = "kép: "
+                } label: { Label("Generate image in chat", systemImage: "photo.badge.plus") }
+                Button { state.sheet = .studio } label: { Label("Image studio (advanced)", systemImage: "wand.and.stars") }
                 Button { state.sheet = .prompts } label: { Label("Saved prompts", systemImage: "text.book.closed") }
                 Button { state.sheet = .settings } label: { Label("Settings", systemImage: "slider.horizontal.3") }
                 Button { state.sheet = .export } label: { Label("Export", systemImage: "square.and.arrow.up") }
