@@ -151,7 +151,7 @@ final class AppState {
               let index = conversations.firstIndex(where: { $0.id == id }) else { return }
 
         if conversations[index].title == "New chat" {
-            conversations[index].title = trimmed.isEmpty ? (files.isEmpty ? "Kép" : files[0].name) : Conversation.title(from: trimmed)
+            conversations[index].title = trimmed.isEmpty ? (files.isEmpty ? "Image" : files[0].name) : Conversation.title(from: trimmed)
         }
         if settings.memoryEnabled, !trimmed.isEmpty { remember(from: trimmed) }
         let userMessage = ChatMessage(role: .user, text: trimmed)
@@ -195,7 +195,7 @@ final class AppState {
         }
     }
 
-    /// Képgenerálás a chatben: a kérés bekerül a beszélgetésbe, a válasz-buborék
+    /// Imagegenerálás a chatben: a kérés bekerül a beszélgetésbe, a válasz-buborék
     /// pedig animált hellyel él, amíg a Void Canvas renderel — aztán megkapja a képet.
     func sendImage(_ prompt: String) {
         let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -249,7 +249,7 @@ final class AppState {
         conversations[ci].messages[mi].imageStatus = status
         conversations[ci].messages[mi].imageURL = url
         if status == "failed" {
-            conversations[ci].messages[mi].text = "A kép most nem készült el. Próbáld újra kicsit később."
+            conversations[ci].messages[mi].text = "The image could not be generated. Try again in a bit."
         }
         conversations[ci].updatedAt = Date()
         isStreaming = false
@@ -614,9 +614,9 @@ final class AppState {
                 let url = try await CortexClient.shared.share(messages: Array(rows), title: title)
                 UIPasteboard.general.string = url.absoluteString
                 Haptics.success()
-                self.flash("Link kimásolva — 30 napig él")
+                self.flash("Link copied — valid for 30 days")
             } catch {
-                self.flash("Nem sikerült a megosztás")
+                self.flash("Sharing failed")
             }
         }
     }
