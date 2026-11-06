@@ -17,8 +17,8 @@ struct Project: Identifiable, Codable, Hashable {
         var parts: [String] = []
         let ins = instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         let know = knowledge.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !ins.isEmpty { parts.append("Projekt utasítás: " + ins) }
-        if !know.isEmpty { parts.append("Projekt tudás:\n" + know) }
+        if !ins.isEmpty { parts.append("Project instruction: " + ins) }
+        if !know.isEmpty { parts.append("Project knowledge:\n" + know) }
         guard !parts.isEmpty else { return "" }
         let text = parts.joined(separator: "\n\n")
         return text.count <= 6_000 ? text : String(text.prefix(6_000))
@@ -48,7 +48,7 @@ struct ProjectsView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "plus")
-                            Text("Új projekt")
+                            Text("New project")
                         }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.violetSoft)
@@ -74,7 +74,7 @@ struct ProjectsView: View {
             .navigationTitle("Projektek")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("Kész") { dismiss() } }
+                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
             }
             .sheet(item: $editing) { project in
                 ProjectEditor(project: project, isNew: state.projects.contains(where: { $0.id == project.id }) == false)
@@ -96,10 +96,10 @@ struct ProjectsView: View {
                     .frame(width: 34, height: 34)
                     .background(Theme.surfaceRaised, in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Általános")
+                    Text("General")
                         .font(.system(size: 14.5, weight: .semibold))
                         .foregroundStyle(Theme.text)
-                    Text("Nincs projekt — a beszélgetés szabad.")
+                    Text("No project — the conversation is free.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(Theme.textFaint)
                 }
@@ -134,7 +134,7 @@ struct ProjectsView: View {
                     Text(project.name)
                         .font(.system(size: 14.5, weight: .semibold))
                         .foregroundStyle(Theme.text)
-                    Text(project.isBlank ? "Nincs utasítás" : project.instruction)
+                    Text(project.isBlank ? "No instruction" : project.instruction)
                         .font(.system(size: 11.5))
                         .foregroundStyle(Theme.textFaint)
                         .lineLimit(1)
@@ -153,10 +153,10 @@ struct ProjectsView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button { editing = project } label: { Label("Szerkesztés", systemImage: "pencil") }
+            Button { editing = project } label: { Label("Edit", systemImage: "pencil") }
             Button(role: .destructive) {
                 state.deleteProject(project.id)
-            } label: { Label("Törlés", systemImage: "trash") }
+            } label: { Label("Delete", systemImage: "trash") }
         }
     }
 }
@@ -178,22 +178,22 @@ struct ProjectEditor: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    field("Név") {
-                        TextField("Például: Anime fordítás", text: $draft.name)
+                    field("Name") {
+                        TextField("e.g. Anime translation", text: $draft.name)
                             .textFieldStyle(.plain)
                     }
-                    field("Utasítás — minden válaszban érvényes") {
+                    field("Instruction — applies to every answer") {
                         TextEditor(text: $draft.instruction)
                             .frame(minHeight: 90)
                             .scrollContentBackground(.hidden)
                     }
-                    field("Tudás — szószedet, stíluslap, szabályok") {
+                    field("Knowledge — glossary, style sheet, rules") {
                         TextEditor(text: $draft.knowledge)
                             .frame(minHeight: 140)
                             .scrollContentBackground(.hidden)
                     }
                     HStack(spacing: 10) {
-                        Text("Szín").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textFaint)
+                        Text("Color").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textFaint)
                         ForEach(Palette.all, id: \.self) { hex in
                             Circle()
                                 .fill(Color(hex: hex))
@@ -209,15 +209,15 @@ struct ProjectEditor: View {
                 .padding(Theme.gutter)
             }
             .background(Theme.ink)
-            .navigationTitle(isNew ? "Új projekt" : "Projekt")
+            .navigationTitle(isNew ? "New project" : "Projekt")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Mégsem") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Mentés") {
+                    Button("Save") {
                         var value = draft
                         value.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if value.name.isEmpty { value.name = "Névtelen projekt" }
+                        if value.name.isEmpty { value.name = "Nametelen projekt" }
                         value.updatedAt = Date()
                         state.upsert(value)
                         state.selectProject(value.id)
