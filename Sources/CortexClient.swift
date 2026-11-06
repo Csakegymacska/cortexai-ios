@@ -248,7 +248,7 @@ final class CortexClient: @unchecked Sendable {
         }
         let study = try JSONDecoder().decode(Research.self, from: data)
         guard study.ok, let text = study.text, !text.isEmpty else {
-            throw ClientError.badStatus(503, study.message ?? "Ehhez most nem találtam használható forrást.")
+            throw ClientError.badStatus(503, study.message ?? "I could not find a usable source for this.")
         }
         return study
     }
