@@ -32,7 +32,62 @@ jobs:
             ForEach-Object { "$($_.Hash.ToLower())  CortexAI-1.0-windows.exe" } |
             Out-File -Encoding ascii out/CortexAI-1.0-windows.exe.sha256
 
+      - name: Screenshot the real app window
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path shots | Out-Null
+          Start-Process -FilePath "$PWD\out\CortexAI-1.0-windows.exe"
+          Start-Sleep -Seconds 20
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public class Win32Shot {
+            [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+          }
+          '@
+          $proc = Get-Process cortexai -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($proc -and $proc.MainWindowHandle -ne 0) {
+            $hwnd = $proc.MainWindowHandle
+            [Win32Shot]::SetForegroundWindow($hwnd) | Out-Null
+            Start-Sleep -Seconds 2
+            $r = New-Object Win32Shot+RECT
+            [Win32Shot]::GetWindowRect($hwnd, [ref]$r) | Out-Null
+            $w = $r.R - $r.L
+            $h = $r.B - $r.T
+            Write-Host "Window: $w x $h at $($r.L),$($r.T)"
+            if ($w -gt 100 -and $h -gt 100) {
+              $bmp = New-Object System.Drawing.Bitmap $w, $h
+              $g = [System.Drawing.Graphics]::FromImage($bmp)
+              $dc = $g.GetHdc()
+              [Win32Shot]::PrintWindow($hwnd, $dc, 2) | Out-Null
+              $g.ReleaseHdc($dc)
+              $g.Dispose()
+              $bmp.Save("$PWD\shots\windows-exe.png")
+              Write-Host "Saved windows-exe.png"
+            }
+          } else {
+            Write-Host "App window not found"
+          }
+          $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen
+          $bmp2 = New-Object System.Drawing.Bitmap $vs.Width, $vs.Height
+          $g2 = [System.Drawing.Graphics]::FromImage($bmp2)
+          $g2.CopyFromScreen($vs.X, $vs.Y, 0, 0, $bmp2.Size)
+          $g2.Dispose()
+          $bmp2.Save("$PWD\shots\windows-screen.png")
+          Write-Host "Saved windows-screen.png"
+          Get-Process cortexai -ErrorAction SilentlyContinue | Stop-Process -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: CortexAI-windows
           path: out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CortexAI-windows-shots
+          path: shots/
