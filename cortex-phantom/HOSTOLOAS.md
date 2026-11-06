@@ -45,7 +45,31 @@ A szerver indítása a `cortex-phantom/serve/` mappából: `docker compose up -d
 (lásd a `serve/README.md`-t). A modell: a Kaggle-ből csomagolt LoRA adapter
 ráültetve egy 1,5B-s bázisra (Q4_K_M GGUF, ~1 GB).
 
-## 3. Ha ERŐSEBB válaszok kellenek — API, nem saját vas
+## 3. ~~DeepSeek~~ — csak átmeneti mankó (a végcél: saját modell)
+
+**Döntés (2026-11-06): egyedi Cortex modellünk lesz — DeepSeek nem kell.**
+A külső motorok (DeepSeek, Gemini, xKiro) csak addig mankók, amíg a saját
+Cortex Phantom Core el nem éri a mérőpad 92-es célját. A worker kódjában ez
+már így is van: „ha bajnok van, a `selfhost` kerül a lánc élére" — a
+promóciót a napi mérőpad dönti el, nem kézi kapcsoló.
+
+**A saját modell útja (API-függőség nélkül):**
+1. **Adat** — a saját korpusz (feliratok + katalógus-QA) + a konstíciós
+   javítókörök + FineWeb-stílusú szűrés — ez a mi moat-unk, nem a bázismodell
+2. **Tanítás** — Kaggle QLoRA körök az új `train-mix`-en (minőségi szűrt +
+   SL-CAI), a mérőpad minden körben visszaigazol
+3. **Bajnok-rendszer** — az új LoRA csak akkor kerül élesbe, ha veri a
+   regnáló bajnokot → a minőség soha nem esik vissza
+4. **Hostolás** — Hetzner CPU VPS (1,5B) → később nagyobb bázis (7–8B Q4)
+   ugyanazon a vason; a skálázás = tanítás, nem API-számla
+
+A régi API-ár-táblázat referenciának megmarad (lásd lentebb), de a költség-
+tervben **nem szerepel**: a havi cél **~$6–15/hó** a saját modell VPS-sel,
+külső API nélkül.
+
+<details><summary>A külső API-k árai (referencia, ha a mankó kellene menet közben)</summary>
+
+
 
 A 2026-os listaárak (1 millió tokenre, USD):
 
@@ -71,7 +95,17 @@ de **$5 feltöltéssel a lánc legerősebb motorja feloldódik** — ez a legjob
 | 3 | DeepSeek API feltöltés (V4.1 Flash) | ~$5–10 forgalomtól |
 | **Összesen** | | **~$10–30 / hó (≈ 4 000–11 000 Ft)** |
 
-Ez a teljes Cortex-rendszer: web, app, chat, képgenerálás, fordítás, saját modell.
+</details>
+
+## 5. Végleges havi terv (saját modell, DeepSeek nélkül)
+
+| Sor | Mi | Havi |
+|---|---|---|
+| 1 | Cloudflare (Workers + R2 + Workers AI) | ~$0–10 |
+| 2 | Hetzner VPS — **a saját Cortex modell** | ~$6–15 |
+| **Összesen** | | **~$6–25 / hó (≈ 2 500–9 000 Ft)** |
+
+Ez a teljes Cortex-rendszer: web, app, chat, képgenerálás, fordítás, **saját modell** — API-függőség nélkül.
 
 *Frissítve: 2026-11-06 · források: RunPod/Vast.ai/Modal listaárak (2026 Q4),
 DeepSeek hivatalos árlista (2026-10), Hetzner.*
