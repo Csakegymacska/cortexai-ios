@@ -29,7 +29,7 @@ struct ComposerView: View {
     @Environment(AppState.self) private var state
     @StateObject private var dictation = Dictation()
     var focused: FocusState<Bool>.Binding
-    let onSend: (String, [ChatImage], [ChatFile], Bool) -> Void
+    let onSend: (String, [ChatImage], [ChatFile], Bool, Bool) -> Void
 
     /// Egy kiválasztott kép: a bélyegkép a felülethez, a payload a motornak.
     private struct Picked: Identifiable {
@@ -48,6 +48,7 @@ struct ComposerView: View {
     @State private var importingDocument = false
     @State private var researchMode = false
     @State private var pickPrompt = false
+    @State private var imageMode = false
 
     private var canSend: Bool {
         (!trimmed.isEmpty || !attachments.isEmpty || !documents.isEmpty) && !state.isStreaming
@@ -69,6 +70,34 @@ struct ComposerView: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            if imageMode {
+                HStack(spacing: 7) {
+                    Image(systemName: "photo.on.rectangle.angled.fill")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("Képgenerálás — Cortex Void Canvas")
+                        .font(.system(size: 11.5, weight: .semibold))
+                    Spacer(minLength: 0)
+                    Button {
+                        withAnimation(CortexMotion.snappy) { imageMode = false }
+                        Haptics.tap()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.textMuted)
+                            .frame(width: 18, height: 18)
+                            .background(Circle().fill(Theme.surfaceRaised))
+                    }
+                    .buttonStyle(LiquidPress())
+                    .accessibilityLabel("Turn image mode off")
+                }
+                .foregroundStyle(Theme.text)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Theme.accent.opacity(0.18), in: Capsule())
+                .overlay(Capsule().strokeBorder(Theme.accent.opacity(0.4), lineWidth: 1))
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             if !attachments.isEmpty {
                 HStack(spacing: 8) {
                     ForEach(attachments) { item in
@@ -164,62 +193,49 @@ struct ComposerView: View {
                         .transition(.opacity)
                 }
 
-                Button { pickPrompt = true; Haptics.tap() } label: {
-                    Image(systemName: "text.book.closed")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.textMuted)
-                        .frame(width: 31, height: 31)
-                        .background { Circle().fill(Theme.surfaceRaised) }
-                        .overlay(Circle().strokeBorder(Theme.hairline, lineWidth: 1))
-                }
-                .buttonStyle(LiquidPress())
-                .accessibilityLabel("Saved prompts")
-                .accessibilityIdentifier("chat.prompts")
-
-                Button { importingDocument = true; Haptics.tap() } label: {
-                    Image(systemName: "doc.badge.plus")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.textMuted)
-                        .frame(width: 31, height: 31)
-                        .background { Circle().fill(Theme.surfaceRaised) }
-                        .overlay(Circle().strokeBorder(Theme.hairline, lineWidth: 1))
-                }
-                .buttonStyle(LiquidPress())
-                .accessibilityLabel("Attach a document")
-                .accessibilityIdentifier("chat.doc")
-
-                Button {
-                    researchMode.toggle()
-                    if state.settings.hapticsEnabled { Haptics.tap() }
+                // Kevesebb gomb, több hely: minden ritkább eszköz a „+" menüben,
+                // a sorban csak a menü, a képolvasás, a mikrofon és a küldés marad.
+                Menu {
+                    Button { pickPrompt = true; Haptics.tap() } label: {
+                        Label("Mentett utasítások", systemImage: "text.book.closed")
+                    }
+                    Button { importingDocument = true; Haptics.tap() } label: {
+                        Label("Dokumentum csatolása", systemImage: "doc.badge.plus")
+                    }
+                    Button {
+                        imageMode.toggle()
+                        if state.settings.hapticsEnabled { Haptics.tap() }
+                    } label: {
+                        Label(imageMode ? "Képgenerálás be" : "Képgenerálás",
+                              systemImage: imageMode ? "photo.on.rectangle.angled.fill" : "photo.on.rectangle.angled")
+                    }
+                    Button {
+                        researchMode.toggle()
+                        if state.settings.hapticsEnabled { Haptics.tap() }
+                    } label: {
+                        Label(researchMode ? "Mély kutatás be" : "Mély kutatás",
+                              systemImage: researchMode ? "binoculars.fill" : "binoculars")
+                    }
+                    Button {
+                        state.agentMode.toggle()
+                        if state.settings.hapticsEnabled { Haptics.tap() }
+                    } label: {
+                        Label(state.agentMode ? "Ügynök mód be" : "Ügynök mód",
+                              systemImage: "point.3.connected.trianglepath.dotted")
+                    }
                 } label: {
-                    Image(systemName: researchMode ? "binoculars.fill" : "binoculars")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(researchMode ? Theme.ink : Theme.textMuted)
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(imageMode ? Theme.ink : Theme.textMuted)
                         .frame(width: 31, height: 31)
                         .background {
-                            Circle().fill(researchMode ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.surfaceRaised))
+                            Circle().fill(imageMode ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.surfaceRaised))
                         }
                         .overlay(Circle().strokeBorder(Theme.hairline, lineWidth: 1))
                 }
                 .buttonStyle(LiquidPress())
-                .accessibilityLabel(researchMode ? "Deep research on" : "Deep research off")
-                .accessibilityIdentifier("chat.research")
-
-                Button {
-                    state.agentMode.toggle()
-                    if state.settings.hapticsEnabled { Haptics.tap() }
-                } label: {
-                    Image(systemName: "point.3.connected.trianglepath.dotted")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(state.agentMode ? Theme.ink : Theme.textMuted)
-                        .frame(width: 31, height: 31)
-                        .background {
-                            Circle().fill(state.agentMode ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.surfaceRaised))
-                        }
-                        .overlay(Circle().strokeBorder(Theme.hairline, lineWidth: 1))
-                }
-                .buttonStyle(LiquidPress())
-                .accessibilityLabel(state.agentMode ? "Agent mode on" : "Agent mode off")
+                .accessibilityLabel("Tools")
+                .accessibilityIdentifier("chat.tools")
 
                 // A PhotosPicker címkéje @Sendable zárójel, ezért @State-et nem olvashat.
                 // Az értéket előtte kimentjük, a címke kész Boolt kap.
@@ -403,6 +419,15 @@ struct ComposerView: View {
         let outgoing = attachments.map(\.payload)
         let attachedDocs = documents
         let research = researchMode
+        // Kép-mód: a kapcsoló mellett a szöveg is kiválthatja („kép: …",
+        // „generálj egy képet …", „rajzolj …").
+        let lower = text.lowercased()
+        let autoImage = !imageMode && (
+            lower.hasPrefix("kép:") || lower.hasPrefix("kep:") ||
+            (lower.contains("kép") && (lower.contains("generál") || lower.contains("rajzol"))) ||
+            (lower.contains("image") && lower.contains("generat")) ||
+            lower.contains("draw me"))
+        let wantsImage = imageMode || autoImage
         if dictation.isRecording { dictation.stop() }
         dictation.reset()
         draft = ""
@@ -411,7 +436,7 @@ struct ComposerView: View {
         attachments = []
         documents = []
         if state.settings.hapticsEnabled { Haptics.tap() }
-        onSend(text, outgoing, attachedDocs, research)
+        onSend(text, outgoing, attachedDocs, research, wantsImage)
     }
 }
 
