@@ -8,15 +8,15 @@ struct OnboardingView: View {
     private let pages: [Page] = [
         Page(symbol: "sparkles",
              title: "Cortex Void",
-             body: "Az OmegaTech és a CortexAnime AI-ja. Kérdezz bármit: kód, ötletek, anime, tanulás — magyarul vagy angolul.",
+             body: "The AI by OmegaTech and CortexAnime. Ask anything: code, ideas, anime, learning — in Hungarian or English.",
              accent: Theme.violetSoft),
         Page(symbol: "person.2.fill",
              title: "Your profiles",
-             body: "Külön profilt adhatsz a kódoláshoz, a tanuláshoz vagy az anime ajánlásokhoz. Mindegyik saját hangnemet és saját modellt kap.",
+             body: "You can create separate profiles for coding, learning or anime recommendations. Each gets its own voice and model.",
              accent: Theme.cyan),
         Page(symbol: "lock.shield.fill",
              title: "Private by default",
-             body: "A beszélgetések ezen az eszközön maradnak. Nincs fiók, nincs hirdetés — és a Cortex Void soha nem adja ki, milyen technológián fut.",
+             body: "Conversations stay on this device. No account, no ads — and Cortex Void never reveals what technology it runs on.",
              accent: Theme.magenta)
     ]
 
