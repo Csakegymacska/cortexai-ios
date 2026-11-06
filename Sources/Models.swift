@@ -61,6 +61,10 @@ struct ChatMessage: Identifiable, Codable, Hashable {
     var twoUp: [TwoUpAnswer]? = nil
     /// Ügynök mód: a megtett lépések, sorrendben.
     var steps: [AgentStep]? = nil
+    /// Képgenerálás a chatben: "pending" amíg a Void Canvas renderel, aztán
+    /// "succeeded" (imageURL kitöltve) vagy "failed". Régi üzenetekben nincs ilyen mező.
+    var imageStatus: String? = nil
+    var imageURL: String? = nil
 
     var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
