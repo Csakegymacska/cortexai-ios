@@ -44,7 +44,7 @@ struct ChatView: View {
                 out += "\n" + step.map { "- [\($0.ok ? "x" : " ")] \($0.label): \($0.detail) (\($0.ms) ms)" }.joined(separator: "\n") + "\n"
             }
             if let sources = message.sources, !sources.isEmpty {
-                out += "\nForrások:\n" + sources.map { "- \($0)" }.joined(separator: "\n") + "\n"
+                out += "\nSources:\n" + sources.map { "- \($0)" }.joined(separator: "\n") + "\n"
             }
         }
         return out
@@ -71,9 +71,9 @@ struct ChatView: View {
                 if state.phase != .idle || state.researchMode || state.compareMode || state.agentMode || state.activeProject != nil {
                     HStack(spacing: 7) {
                         if state.phase != .idle { PhasePill(phase: state.phase) }
-                        if state.researchMode { ModeChip(title: "Mély kutatás", symbol: "binoculars") { state.researchMode = false } }
-                        if state.compareMode { ModeChip(title: "Két hangnem", symbol: "rectangle.split.2x1") { state.compareMode = false } }
-                        if state.agentMode { ModeChip(title: "Ügynök", symbol: "point.3.connected.trianglepath.dotted") { state.agentMode = false } }
+                        if state.researchMode { ModeChip(title: "Deep research", symbol: "binoculars") { state.researchMode = false } }
+                        if state.compareMode { ModeChip(title: "Two voices", symbol: "rectangle.split.2x1") { state.compareMode = false } }
+                        if state.agentMode { ModeChip(title: "Agent", symbol: "point.3.connected.trianglepath.dotted") { state.agentMode = false } }
                         if let project = state.activeProject { ModeChip(title: project.name, symbol: "square.stack.3d.up", tint: Color(hex: project.tintHex)) { } }
                         Spacer(minLength: 0)
                     }
@@ -83,9 +83,9 @@ struct ChatView: View {
                 }
                 ComposerView(focused: $composerFocused) { text, images, files, research, wantsImage in
                     if wantsImage {
-                        state.sendImage(text.isEmpty ? "Egy szép kép" : text)
+                        state.sendImage(text.isEmpty ? "A nice picture" : text)
                     } else if state.compareMode {
-                        state.compare(text.isEmpty ? "Hasonlítsd össze a lehetőségeket." : text)
+                        state.compare(text.isEmpty ? "Compare the options." : text)
                     } else {
                         state.send(text, images: images, files: files,
                                    research: research || state.researchMode,
@@ -252,7 +252,7 @@ struct ChatView: View {
             .accessibilityIdentifier("chat.commands")
 
             Menu {
-                Button { state.sheet = .knowledge } label: { Label("Tudásbázis", systemImage: "brain.head.profile") }
+                Button { state.sheet = .knowledge } label: { Label("Knowledge base", systemImage: "brain.head.profile") }
                 Button { state.sheet = .projects } label: { Label("Projektek", systemImage: "square.stack.3d.up") }
                 Button { state.sheet = .tasks } label: {
                     Label(state.tasks.isEmpty ? "Feladatok" : "Feladatok (\(state.tasks.count))", systemImage: "alarm")
@@ -261,19 +261,19 @@ struct ChatView: View {
                     state.agentMode.toggle()
                     Haptics.tap()
                 } label: {
-                    Label(state.agentMode ? "Ügynök mód be" : "Ügynök mód", systemImage: "point.3.connected.trianglepath.dotted")
+                    Label(state.agentMode ? "Agent mode on" : "Agent mode", systemImage: "point.3.connected.trianglepath.dotted")
                 }
                 Button {
                     state.researchMode.toggle()
                     if state.researchMode { state.compareMode = false }
                 } label: {
-                    Label(state.researchMode ? "Mély kutatás be" : "Mély kutatás", systemImage: "binoculars")
+                    Label(state.researchMode ? "Deep research be" : "Deep research", systemImage: "binoculars")
                 }
                 Button {
                     state.compareMode.toggle()
                     if state.compareMode { state.researchMode = false }
                 } label: {
-                    Label(state.compareMode ? "Két hangnem be" : "Két hangnem", systemImage: "rectangle.split.2x1")
+                    Label(state.compareMode ? "Two voices be" : "Two voices", systemImage: "rectangle.split.2x1")
                 }
                 Divider()
                 if let conversation, !conversation.messages.isEmpty {
@@ -281,12 +281,12 @@ struct ChatView: View {
                         Label("Beszélgetés mentése (.md)", systemImage: "square.and.arrow.up")
                     }
                 }
-                Button { state.sheet = .studio } label: { Label("Képstúdió", systemImage: "wand.and.stars") }
-                Button { state.sheet = .prompts } label: { Label("Mentett utasítások", systemImage: "text.book.closed") }
-                Button { state.sheet = .settings } label: { Label("Beállítások", systemImage: "slider.horizontal.3") }
-                Button { state.sheet = .export } label: { Label("Exportálás", systemImage: "square.and.arrow.up") }
-                Button { state.sheet = .subscription } label: { Label("Előfizetés", systemImage: "creditcard") }
-                Button { state.sheet = .features } label: { Label("Újdonságok", systemImage: "sparkles") }
+                Button { state.sheet = .studio } label: { Label("Image studio", systemImage: "wand.and.stars") }
+                Button { state.sheet = .prompts } label: { Label("Saved prompts", systemImage: "text.book.closed") }
+                Button { state.sheet = .settings } label: { Label("Settings", systemImage: "slider.horizontal.3") }
+                Button { state.sheet = .export } label: { Label("Export", systemImage: "square.and.arrow.up") }
+                Button { state.sheet = .subscription } label: { Label("Subscription", systemImage: "creditcard") }
+                Button { state.sheet = .features } label: { Label("What's new", systemImage: "sparkles") }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 15, weight: .bold))
@@ -396,10 +396,10 @@ struct EmptyChatState: View {
     let onPrompt: (String) -> Void
 
     private let prompts = [
-        "Magyarázd el 5 mondatban, mit tud a Cortex Void.",
-        "Írj egy SwiftUI kártyát 3D dőléssel.",
-        "Melyik 3 anime jön ma ki, amit érdemes nézni?",
-        "Segíts megtervezni a hetem."
+        "Explain in 5 sentences what Cortex Void can do.",
+        "Write a SwiftUI card with a 3D tilt.",
+        "Which 3 anime episodes are worth watching today?",
+        "Help me plan my week."
     ]
 
     var body: some View {
