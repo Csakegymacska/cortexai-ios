@@ -425,6 +425,9 @@ struct ComposerView: View {
         let autoImage = !imageMode && (
             lower.hasPrefix("kép:") || lower.hasPrefix("kep:") ||
             (lower.contains("kép") && (lower.contains("generál") || lower.contains("rajzol"))) ||
+            lower.hasPrefix("image:") || lower.hasPrefix("draw ") ||
+            lower.contains("generate an image") || lower.contains("make an image") ||
+            lower.contains("draw me") || lower.contains("picture of") ||
             (lower.contains("image") && lower.contains("generat")) ||
             lower.contains("draw me"))
         let wantsImage = imageMode || autoImage
