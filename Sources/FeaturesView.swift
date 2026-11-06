@@ -9,10 +9,10 @@ struct FeaturesView: View {
     @State private var appeared = false
 
     private let fallback: [CortexClient.Feature] = [
-        .init(key: "research", title: "Mély kutatás", body: "Több forrás, számozott hivatkozások — a válasz alatt ott a forrás."),
+        .init(key: "research", title: "Deep research", body: "Multiple sources, numbered references — the sources sit under the answer."),
         .init(key: "documents", title: "Dokumentumok", body: "PDF, TXT, MD, CSV csatolása; a válasz a dokumentumból dolgozik."),
-        .init(key: "suggestions", title: "Következő kérdés", body: "A válasz alatt koppintható javaslatok, hogy ne kelljen kitalálni, mi jöhet."),
-        .init(key: "branch", title: "Új ág", body: "Bármelyik üzenetről új beszélgetés indul, a korábbiak megtartásával."),
+        .init(key: "suggestions", title: "Next question", body: "Tappable suggestions under the answer, so you never have to guess what to ask next."),
+        .init(key: "branch", title: "New branch", body: "Start a new conversation from any message, keeping the earlier ones."),
     ]
 
     private var items: [CortexClient.Feature] { board?.items ?? (failed ? fallback : []) }
@@ -28,7 +28,7 @@ struct FeaturesView: View {
                                 .font(.system(size: 22, weight: .heavy))
                                 .foregroundStyle(Theme.text)
                         }
-                        Text("Ez mind benne van most — és a böngészőben is, ugyanazzal a tudással.")
+                        Text("All of this is in now — and in the browser too, with the same knowledge.")
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.textMuted)
                     }
@@ -37,7 +37,7 @@ struct FeaturesView: View {
                     if items.isEmpty && !failed {
                         HStack(spacing: 10) {
                             ProgressView().tint(Theme.textMuted)
-                            Text("Betöltés…").font(.system(size: 13)).foregroundStyle(Theme.textFaint)
+                            Text("Loading…").font(.system(size: 13)).foregroundStyle(Theme.textFaint)
                         }
                         .padding(.vertical, 20)
                     }
@@ -88,7 +88,7 @@ struct FeaturesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Kész") { dismiss() }
+                    Button("Done") { dismiss() }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.violetSoft)
                 }
