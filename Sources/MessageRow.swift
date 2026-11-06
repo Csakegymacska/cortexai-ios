@@ -120,7 +120,7 @@ struct MessageRow: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Theme.danger)
-                    MarkdownText(text: message.text.isEmpty ? "A kép most nem készült el." : message.text)
+                    MarkdownText(text: message.text.isEmpty ? "The image could not be generated." : message.text)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -454,7 +454,7 @@ struct GeneratingImageCard: View {
                     .font(.system(size: 11.5, weight: .heavy))
                     .tracking(0.9)
                     .foregroundStyle(.white.opacity(0.85))
-                Text("A kép készül…")
+                Text("Generating the image…")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.55))
             }
@@ -496,7 +496,7 @@ struct ChatImageCard: View {
                             Image(systemName: "photo")
                                 .font(.system(size: 22, weight: .light))
                                 .foregroundStyle(Theme.textFaint)
-                            Text("A kép nem tölthető be.")
+                            Text("The image could not be loaded.")
                                 .font(.system(size: 11.5))
                                 .foregroundStyle(Theme.textFaint)
                         }
