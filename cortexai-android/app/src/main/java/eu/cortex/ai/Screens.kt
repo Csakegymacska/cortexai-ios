@@ -40,9 +40,9 @@ fun CortexApp(activity: MainActivity) {
         bottomBar = {
             NavigationBar(containerColor = InkSurface) {
                 listOf(
-                    Screen.Chat to Icons.Default.Chat to "Chat",
-                    Screen.Subscription to Icons.Default.CreditCard to "Subscription",
-                    Screen.Settings to Icons.Default.Settings to "Settings",
+                    Triple(Screen.Chat, Icons.Default.Chat, "Chat"),
+                    Triple(Screen.Subscription, Icons.Default.CreditCard, "Subscription"),
+                    Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
                 ).forEach { (scr, icon, label) ->
                     NavigationBarItem(
                         selected = activity.screen == scr,
