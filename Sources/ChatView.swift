@@ -81,8 +81,10 @@ struct ChatView: View {
                     .padding(.top, 6)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                ComposerView(focused: $composerFocused) { text, images, files, research in
-                    if state.compareMode {
+                ComposerView(focused: $composerFocused) { text, images, files, research, wantsImage in
+                    if wantsImage {
+                        state.sendImage(text.isEmpty ? "Egy szép kép" : text)
+                    } else if state.compareMode {
                         state.compare(text.isEmpty ? "Hasonlítsd össze a lehetőségeket." : text)
                     } else {
                         state.send(text, images: images, files: files,
@@ -225,16 +227,13 @@ struct ChatView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: CortexTier.named(conversation?.tier ?? "void").symbol)
-                        .font(.system(size: 11, weight: .bold))
-                    Text(CortexTier.named(conversation?.tier ?? "void").label.replacingOccurrences(of: "Cortex Void", with: "Void"))
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .padding(.horizontal, 11)
-                .padding(.vertical, 8)
-                .cortexGlass(Capsule(), interactive: true)
-                .foregroundStyle(Theme.text)
+                // Csak jelölő ikon: a hosszú modellnevek („Cortex Phantom" stb.)
+                // soha nem törhetnek meg egy telefont, a név a menüben látszik.
+                Image(systemName: CortexTier.named(conversation?.tier ?? "void").symbol)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.text)
+                    .frame(width: 34, height: 34)
+                    .cortexGlass(Circle(), interactive: true)
             }
             .accessibilityIdentifier("chat.tier")
 
@@ -243,8 +242,8 @@ struct ChatView: View {
                 Haptics.tap()
             } label: {
                 Image(systemName: "command")
-                    .font(.system(size: 13, weight: .bold))
-                    .frame(width: 32, height: 32)
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 34, height: 34)
                     .cortexGlass(Circle(), interactive: true)
                     .foregroundStyle(Theme.text)
             }
@@ -284,27 +283,20 @@ struct ChatView: View {
                 }
                 Button { state.sheet = .studio } label: { Label("Képstúdió", systemImage: "wand.and.stars") }
                 Button { state.sheet = .prompts } label: { Label("Mentett utasítások", systemImage: "text.book.closed") }
+                Button { state.sheet = .settings } label: { Label("Beállítások", systemImage: "slider.horizontal.3") }
                 Button { state.sheet = .export } label: { Label("Exportálás", systemImage: "square.and.arrow.up") }
                 Button { state.sheet = .subscription } label: { Label("Előfizetés", systemImage: "creditcard") }
                 Button { state.sheet = .features } label: { Label("Újdonságok", systemImage: "sparkles") }
             } label: {
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 16, weight: .semibold))
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.text)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 34, height: 34)
                     .cortexGlass(Circle(), interactive: true)
             }
             .accessibilityLabel("Tools")
             .accessibilityIdentifier("chat.canvas")
 
-            Button { state.sheet = .settings } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.text)
-                    .frame(width: 38, height: 38)
-                    .cortexGlass(Circle(), interactive: true)
-            }
-            .accessibilityLabel("Settings")
         }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
