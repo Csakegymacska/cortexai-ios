@@ -43,11 +43,11 @@ struct MessageActionsBar: View {
             .foregroundStyle(Theme.textFaint)
             .accessibilityLabel("Share")
 
-            iconButton("rectangle.expand.vertical", label: "Vászon") {
+            iconButton("rectangle.expand.vertical", label: "Canvas") {
                 showCanvas = true
             }
 
-            iconButton("link", label: "Megosztás linkkel") {
+            iconButton("link", label: "Share with link") {
                 state.shareLink(for: message)
             }
 
