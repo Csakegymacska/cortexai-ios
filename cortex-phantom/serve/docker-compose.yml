@@ -1,0 +1,21 @@
+services:
+  phantom-core:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: phantom-core
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/models:ro
+    command: >
+      --host 0.0.0.0 --port 8080
+      --model /models/cortex-phantom-core-Q4_K_M.gguf
+      --alias cortex-phantom-core
+      --ctx-size 4096
+      --threads 4
+      --parallel 2
+      --api-key phantom
+    deploy:
+      resources:
+        limits:
+          memory: 3g
