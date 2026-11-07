@@ -12,6 +12,7 @@ enum Theme {
     // Violet gradiens
     static let vio = Color(red: 0.486, green: 0.361, blue: 0.965)       // #7C5CF6
     static let pink = Color(red: 0.910, green: 0.475, blue: 0.976)      // #E879F9
+    static let blue = Color(red: 0.290, green: 0.345, blue: 0.930)      // hideg aurora-folt
     static var accent: LinearGradient {
         LinearGradient(colors: [vio, pink], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
@@ -27,59 +28,92 @@ enum Theme {
     static let softSpring = Animation.spring(response: 0.6, dampingFraction: 0.9)
 }
 
-/// Aurora-háttér — két lebegő, elmosott gradiens-folt, lassan forog.
+/// Aurora-háttér — három lebegő, elmosott gradiens-folt, lassan forog-dérülnik.
 struct AuroraBackground: View {
+    @AppStorage("ui.reduceMotion") private var reduceMotion = false
     @State private var spin = false
+
     var body: some View {
         ZStack {
             Theme.bg
             GeometryReader { geo in
-                let s = max(geo.size.width, geo.size.height) * 0.9
-                RadialGradient(colors: [Theme.vio.opacity(0.22), .clear], center: .center, startRadius: 0, endRadius: s * 0.55)
+                let s = max(geo.size.width, geo.size.height)
+                RadialGradient(colors: [Theme.vio.opacity(0.32), .clear], center: .center, startRadius: 0, endRadius: s * 0.52)
                     .frame(width: s, height: s)
-                    .offset(x: -s * 0.28, y: -s * 0.30)
-                    .blur(radius: 40)
-                RadialGradient(colors: [Theme.pink.opacity(0.14), .clear], center: .center, startRadius: 0, endRadius: s * 0.5)
-                    .frame(width: s, height: s)
-                    .offset(x: geo.size.width * 0.45, y: geo.size.height * 0.55)
+                    .offset(x: -s * 0.30, y: -s * 0.34)
                     .blur(radius: 46)
+                RadialGradient(colors: [Theme.pink.opacity(0.20), .clear], center: .center, startRadius: 0, endRadius: s * 0.46)
+                    .frame(width: s, height: s)
+                    .offset(x: geo.size.width * 0.44, y: geo.size.height * 0.50)
+                    .blur(radius: 52)
+                RadialGradient(colors: [Theme.blue.opacity(0.20), .clear], center: .center, startRadius: 0, endRadius: s * 0.42)
+                    .frame(width: s, height: s)
+                    .offset(x: geo.size.width * 0.12, y: geo.size.height * 0.80)
+                    .blur(radius: 58)
             }
-            .rotationEffect(.degrees(spin ? 8 : -8))
-            .animation(.easeInOut(duration: 14).repeatForever(autoreverses: true), value: spin)
+            .rotationEffect(.degrees(spin && !reduceMotion ? 8 : -8))
+            .animation(reduceMotion ? nil : .easeInOut(duration: 14).repeatForever(autoreverses: true), value: spin)
+            // olvashatóság: enyhe sötétítés a lap alján
+            LinearGradient(colors: [.clear, Theme.bg.opacity(0.5)], startPoint: .center, endPoint: .bottom)
         }
         .ignoresSafeArea()
         .onAppear { spin = true }
     }
 }
 
-/// Élő gyűrű — dolgozik: pulzáló gradiens; egyébként finom, statikus fény.
+/// Élő gyűrű — az agent „arca". Dolgozik: forgó gradiens, pulzáló mag, aura.
+/// Fontos: rögzített méretű — a Circle soha nem falhatja fel a layoutot.
 struct LiveRing: View {
     let working: Bool
     var size: CGFloat = 30
+    @AppStorage("ui.reduceMotion") private var reduceMotion = false
     @State private var pulse = false
+    @State private var spin = false
 
     var body: some View {
         ZStack {
+            // aura
+            Circle()
+                .fill(RadialGradient(
+                    colors: [(working ? Theme.pink : Theme.vio).opacity(working ? 0.34 : 0.16), .clear],
+                    center: .center, startRadius: 0, endRadius: size * 0.85))
+                .frame(width: size * 1.75, height: size * 1.75)
+                .opacity(pulse && !reduceMotion ? 1 : 0.66)
+            // gyűrű
             Circle()
                 .strokeBorder(
                     AngularGradient(colors: working
-                        ? [Theme.vio, Theme.pink, Theme.vio]
-                        : [Theme.txt3.opacity(0.5)], center: .center),
-                    lineWidth: max(2, size * 0.09)
+                        ? [Theme.vio, Theme.pink, Theme.vio.opacity(0.75), Theme.pink, Theme.vio]
+                        : [Theme.vio.opacity(0.7), Theme.pink.opacity(0.35), Theme.vio.opacity(0.7)],
+                        center: .center),
+                    lineWidth: max(2, size * 0.085)
                 )
-                .shadow(color: working ? Theme.pink.opacity(0.55) : .clear, radius: pulse ? 10 : 4)
-                .scaleEffect(pulse && working ? 1.05 : 1.0)
+                .frame(width: size, height: size)
+                .shadow(color: (working ? Theme.pink : Theme.vio).opacity(working ? 0.55 : 0.28), radius: working ? 8 : 5)
+                .rotationEffect(.degrees(spin && !reduceMotion ? 360 : 0))
+                .animation(reduceMotion ? nil : .linear(duration: working ? 5 : 16).repeatForever(autoreverses: false), value: spin)
+            // mag
             if working {
-                Circle().fill(Theme.pink.opacity(0.9)).scaleEffect(0.38)
-                    .scaleEffect(pulse ? 1.18 : 0.92)
+                Circle()
+                    .fill(Theme.pink.opacity(0.92))
+                    .frame(width: size * 0.32, height: size * 0.32)
+                    .scaleEffect(pulse && !reduceMotion ? 1.16 : 0.92)
+                    .shadow(color: Theme.pink.opacity(0.85), radius: 6)
             } else {
-                Image(systemName: "sparkles")
-                    .font(.system(size: size * 0.32, weight: .bold))
-                    .foregroundStyle(Theme.txt2)
+                ZStack {
+                    Circle()
+                        .fill(Theme.vio.opacity(0.16))
+                        .frame(width: size * 0.62, height: size * 0.62)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: size * 0.30, weight: .bold))
+                        .foregroundStyle(Theme.txt)
+                        .shadow(color: Theme.vio.opacity(0.65), radius: 4)
+                }
             }
         }
+        .frame(width: size, height: size)
         .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: pulse)
-        .onAppear { pulse = true }
+        .onAppear { pulse = true; spin = true }
     }
 }
 
@@ -147,5 +181,70 @@ struct BlinkingCaret: View {
             .opacity(on ? 1 : 0)
             .animation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true), value: on)
             .onAppear { on = false }
+    }
+}
+
+// ── felület-építők: kártya, szekció-címke, beviteli doboz ──
+
+struct CardSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(LinearGradient(colors: [Theme.surf2.opacity(0.92), Theme.surf.opacity(0.92)],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Theme.line, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+    }
+}
+
+extension View {
+    func cardSurface() -> some View { modifier(CardSurface()) }
+
+    /// Kártyák belépő-animációja egymás után.
+    func cardEntrance(_ index: Int, appeared: Bool) -> some View {
+        opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 14)
+            .animation(.spring(response: 0.5, dampingFraction: 0.82).delay(Double(index) * 0.05), value: appeared)
+    }
+}
+
+struct SectionLabel: View {
+    let icon: String
+    let title: String
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 26, height: 26)
+                .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .shadow(color: Theme.vio.opacity(0.45), radius: 6, y: 2)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .kerning(0.8)
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.txt2)
+        }
+    }
+}
+
+struct FieldBox<Content: View>: View {
+    @ViewBuilder var content: Content
+    var body: some View {
+        content
+            .font(.callout)
+            .foregroundStyle(Theme.txt)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .padding(.horizontal, 12).padding(.vertical, 11)
+            .background(Theme.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.line, lineWidth: 1))
     }
 }
