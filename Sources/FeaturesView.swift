@@ -13,6 +13,9 @@ struct FeaturesView: View {
         .init(key: "documents", title: "Dokumentumok", body: "PDF, TXT, MD, CSV csatolása; a válasz a dokumentumból dolgozik."),
         .init(key: "suggestions", title: "Next question", body: "Tappable suggestions under the answer, so you never have to guess what to ask next."),
         .init(key: "branch", title: "New branch", body: "Start a new conversation from any message, keeping the earlier ones."),
+        .init(key: "chats74", title: "Chats, felfedezve", body: "A beszélgetéslista mostantól egyértelmű Chats gombon nyílik, kereséssel, rögzítéssel és számlálóval."),
+        .init(key: "aurora74", title: "Élő auróra-háttér", body: "A háttér fényfoltjai finoman úsznak — a mozgásérzékenység-beállítást az app tiszteletben tartja."),
+        .init(key: "auth74", title: "Megbízható bejelentkezés", body: "A munkamenet mostantól védetten, több rétegben tárolódik — a bejelentkezés nem vész el újraindítás után."),
     ]
 
     private var items: [CortexClient.Feature] { board?.items ?? (failed ? fallback : []) }
