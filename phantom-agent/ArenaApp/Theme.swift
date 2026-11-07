@@ -347,3 +347,97 @@ struct FieldBox<Content: View>: View {
             .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
     }
 }
+
+// ── animáció-építők: gondolkodás, bash, haladás ──
+
+/// Gondolkodó pontok — mielőtt jön az első szó.
+struct TypingDots: View {
+    var color: Color = Theme.pink
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 0.32)) { tl in
+            let p = Int(tl.date.timeIntervalSinceReferenceDate / 0.32) % 3
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(color)
+                        .frame(width: 6, height: 6)
+                        .opacity(p == i ? 1 : 0.3)
+                        .scaleEffect(p == i ? 1.2 : 0.8)
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Végigpásztázó gradiens-keret — a „bashel" / aktív kártya jelzése.
+struct SweepBorder: ViewModifier {
+    var active: Bool
+    @AppStorage("ui.reduceMotion") private var reduceMotion = false
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if active {
+                    TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { tl in
+                        let t = reduceMotion ? 0.15 : tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2.6) / 2.6
+                        RoundedRectangle(cornerRadius: Theme.rMd, style: .continuous)
+                            .stroke(
+                                AngularGradient(
+                                    colors: [.clear, Theme.vio.opacity(0.95), Theme.pink.opacity(0.95), .clear],
+                                    center: .center,
+                                    startAngle: .degrees(t * 360),
+                                    endAngle: .degrees(t * 360 + 300)),
+                                lineWidth: 1.4)
+                    }
+                }
+            }
+    }
+}
+
+extension View {
+    func sweepBorder(_ active: Bool) -> some View { modifier(SweepBorder(active: active)) }
+}
+
+/// Határozatlan haladási sáv — pásztázó fénycsík.
+struct IndeterminateBar: View {
+    var height: CGFloat = 3
+    @AppStorage("ui.reduceMotion") private var reduceMotion = false
+    @State private var shift: CGFloat = -1
+    var body: some View {
+        GeometryReader { geo in
+            Capsule().fill(Theme.line)
+            if !reduceMotion {
+                Capsule()
+                    .fill(Theme.accent)
+                    .frame(width: geo.size.width * 0.35)
+                    .offset(x: shift * geo.size.width * 1.25)
+                    .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: false), value: shift)
+            }
+        }
+        .frame(height: height)
+        .onAppear { shift = 1 }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Mozgó hárompont a státusz-szöveg végén.
+struct Ellipsis: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 0.4)) { tl in
+            let n = Int(tl.date.timeIntervalSinceReferenceDate / 0.4) % 4
+            Text(String(repeating: ".", count: n))
+                .foregroundStyle(Theme.txt2)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Egységes nyomás-visszajelzés minden gombra.
+struct PressableStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(Theme.spring, value: configuration.isPressed)
+    }
+}
