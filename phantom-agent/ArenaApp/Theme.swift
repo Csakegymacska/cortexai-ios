@@ -127,7 +127,7 @@ struct CoreMark: View {
                 .shadow(color: Theme.vio.opacity(0.55), radius: pulse ? 12 : 6)
                 .scaleEffect(pulse && !reduceMotion ? 1.06 : 1.0)
             HexShape()
-                .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                .stroke(Color.white.opacity(0.35), lineWidth: 1)
                 .frame(width: size * 0.46, height: size * 0.46)
         }
         .frame(width: size, height: size)
