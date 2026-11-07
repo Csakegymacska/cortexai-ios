@@ -55,10 +55,10 @@ struct NativeChatView: View {
                         HStack(alignment: .bottom, spacing: 10) {
                             LiveRing(working: true, size: 26)
                             if streamText.isEmpty {
-                                // gondolkodás — mielőtt jön az első szó
+                                // gondolkodás / bash — élő jelzés
                                 HStack(spacing: 10) {
-                                    TypingDots()
-                                    Text("Thinking")
+                                    TypingDots(color: session.toolRunning ? Theme.ok : Theme.pink)
+                                    Text(session.toolRunning ? "Bashing on the runner" : "Thinking")
                                         .font(Theme.ui(13))
                                         .foregroundStyle(Theme.txt3)
                                 }
@@ -191,30 +191,48 @@ struct BubbleView: View {
     var isUser: Bool { message.role == "user" }
 
     var body: some View {
-        HStack {
-            if isUser { Spacer(minLength: 64) }
-            Group {
-                if isUser {
-                    Text(message.content)
-                        .font(Theme.ui(15))
-                        .foregroundStyle(.white)
-                } else {
-                    RichMessageView(content: message.content)
-                }
+        if message.role == "tool" {
+            // megfigyelés-kártya — a runner valódi kimenete
+            HStack(spacing: 8) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.ok)
+                Text(message.content)
+                    .font(Theme.mono)
+                    .foregroundStyle(Theme.txt3)
+                    .lineLimit(4)
+                Spacer(minLength: 0)
             }
-            .textSelection(.enabled)
-            .padding(.horizontal, 14).padding(.vertical, 11)
-            .background {
-                if isUser {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.accent)
-                } else {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Theme.surf)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .frame(maxWidth: .infinity)
+            .background(Theme.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.ok.opacity(0.25), lineWidth: 1))
+        } else {
+            HStack {
+                if isUser { Spacer(minLength: 64) }
+                Group {
+                    if isUser {
+                        Text(message.content)
+                            .font(Theme.ui(15))
+                            .foregroundStyle(.white)
+                    } else {
+                        RichMessageView(content: message.content)
+                    }
                 }
+                .textSelection(.enabled)
+                .padding(.horizontal, 14).padding(.vertical, 11)
+                .background {
+                    if isUser {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.accent)
+                    } else {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Theme.surf)
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
+                    }
+                }
+                .shadow(color: isUser ? Theme.vio.opacity(0.24) : .clear, radius: 8, y: 3)
+                if !isUser { Spacer(minLength: 28) }
             }
-            .shadow(color: isUser ? Theme.vio.opacity(0.24) : .clear, radius: 8, y: 3)
-            if !isUser { Spacer(minLength: 28) }
         }
     }
 }
