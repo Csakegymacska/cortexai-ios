@@ -1,6 +1,8 @@
 // Theme — a Cortex Phantom Agent dizájnvonal: sötét/violet, élő fényekkel.
 // Szabály: UI-szöveg angolul, emoji sehol — csak SF Symbols és vektor.
+// Saját betűtípusok: Sora (display) + Inter (UI) — beépítve, Resources/Fonts.
 import SwiftUI
+import UIKit
 
 enum Theme {
     // Háttér-szintek
@@ -21,6 +23,10 @@ enum Theme {
     static let txt2 = Color.white.opacity(0.62)
     static let txt3 = Color.white.opacity(0.38)
 
+    // Saját betűtípusok — Sora a megjelenő szöveg, Inter a felület
+    static func display(_ size: CGFloat) -> Font { .custom("Sora", size: size) }
+    static func ui(_ size: CGFloat) -> Font { .custom("Inter", size: size) }
+
     static let mono = Font.system(.caption, design: .monospaced).weight(.medium)
 
     // Animációs ívek
@@ -28,41 +34,86 @@ enum Theme {
     static let softSpring = Animation.spring(response: 0.6, dampingFraction: 0.9)
 }
 
-/// Aurora-háttér — három lebegő, elmosott gradiens-folt, lassan forog-dérülnik.
+/// Haptikus visszajelzés — a prémium érzés apró, de fontos része.
+enum Haptics {
+    static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+    static func select() { UISelectionFeedbackGenerator().selectionChanged() }
+    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+}
+
+/// Aurora-háttér — beépített nebula-grafika + élő fénypontok + kódolt aurora.
 struct AuroraBackground: View {
     @AppStorage("ui.reduceMotion") private var reduceMotion = false
     @State private var spin = false
+    @State private var drift = false
 
     var body: some View {
         ZStack {
             Theme.bg
+
+            // beépített nebula — lassú lebegés
+            Image("BgNebula")
+                .resizable()
+                .scaledToFill()
+                .opacity(0.62)
+                .scaleEffect(drift && !reduceMotion ? 1.12 : 1.0)
+                .offset(x: drift && !reduceMotion ? -14 : 8, y: drift && !reduceMotion ? -18 : 6)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 22).repeatForever(autoreverses: true), value: drift)
+
+            // kódolt aurora — mozgás a kép fölött
             GeometryReader { geo in
                 let s = max(geo.size.width, geo.size.height)
-                RadialGradient(colors: [Theme.vio.opacity(0.32), .clear], center: .center, startRadius: 0, endRadius: s * 0.52)
+                RadialGradient(colors: [Theme.vio.opacity(0.22), .clear], center: .center, startRadius: 0, endRadius: s * 0.52)
                     .frame(width: s, height: s)
                     .offset(x: -s * 0.30, y: -s * 0.34)
                     .blur(radius: 46)
-                RadialGradient(colors: [Theme.pink.opacity(0.20), .clear], center: .center, startRadius: 0, endRadius: s * 0.46)
+                RadialGradient(colors: [Theme.pink.opacity(0.14), .clear], center: .center, startRadius: 0, endRadius: s * 0.46)
                     .frame(width: s, height: s)
                     .offset(x: geo.size.width * 0.44, y: geo.size.height * 0.50)
                     .blur(radius: 52)
-                RadialGradient(colors: [Theme.blue.opacity(0.20), .clear], center: .center, startRadius: 0, endRadius: s * 0.42)
-                    .frame(width: s, height: s)
-                    .offset(x: geo.size.width * 0.12, y: geo.size.height * 0.80)
-                    .blur(radius: 58)
             }
             .rotationEffect(.degrees(spin && !reduceMotion ? 8 : -8))
             .animation(reduceMotion ? nil : .easeInOut(duration: 14).repeatForever(autoreverses: true), value: spin)
-            // olvashatóság: enyhe sötétítés a lap alján
-            LinearGradient(colors: [.clear, Theme.bg.opacity(0.5)], startPoint: .center, endPoint: .bottom)
+
+            // lebegő fény-pontok
+            SparkleField()
+
+            // olvashatóság: sötétítés a lap alján
+            LinearGradient(colors: [.clear, Theme.bg.opacity(0.55)], startPoint: .center, endPoint: .bottom)
         }
         .ignoresSafeArea()
-        .onAppear { spin = true }
+        .onAppear { spin = true; drift = true }
+    }
+}
+
+/// Lebegő, pislogó fény-pontok — Canvas, nagyon olcsó.
+struct SparkleField: View {
+    @AppStorage("ui.reduceMotion") private var reduceMotion = false
+    var body: some View {
+        if reduceMotion {
+            Color.clear
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { tl in
+                Canvas { ctx, size in
+                    let t = tl.date.timeIntervalSinceReferenceDate
+                    for i in 0..<24 {
+                        let seed = Double(i) * 7.31
+                        let x = (sin(seed * 1.7 + t * 0.05) * 0.5 + 0.5) * size.width
+                        let y = ((cos(seed * 2.3 + t * 0.035) * 0.5 + 0.5) * size.height + t * 5)
+                            .truncatingRemainder(dividingBy: size.height)
+                        let tw = 0.5 + 0.5 * sin(t * 1.3 + seed)
+                        let r = 1.0 + 1.5 * (0.5 + 0.5 * sin(seed * 3.1))
+                        ctx.opacity = 0.08 + 0.20 * tw
+                        ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: r * 2, height: r * 2)), with: .color(.white))
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+        }
     }
 }
 
 /// Élő gyűrű — az agent „arca". Dolgozik: forgó gradiens, pulzáló mag, aura.
-/// Fontos: rögzített méretű — a Circle soha nem falhatja fel a layoutot.
 struct LiveRing: View {
     let working: Bool
     var size: CGFloat = 30
@@ -126,6 +177,7 @@ struct GlowButton: View {
 
     var body: some View {
         Button {
+            Haptics.tap()
             withAnimation(Theme.spring) { pressed = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 withAnimation(Theme.spring) { pressed = false }
@@ -134,7 +186,7 @@ struct GlowButton: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                Text(title).fontWeight(.semibold)
+                Text(title).font(Theme.ui(15)).fontWeight(.semibold)
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 18).padding(.vertical, 12)
@@ -155,7 +207,7 @@ struct StatusPill: View {
                 .frame(width: 8, height: 8)
                 .shadow(color: status.isWorking ? Theme.pink.opacity(0.8) : .clear, radius: 5)
             Text(AgentState(rawValue: status.state)?.label ?? "Idle")
-                .font(.caption.weight(.semibold))
+                .font(Theme.ui(12)).fontWeight(.semibold)
                 .foregroundStyle(Theme.txt2)
             if status.isWorking && status.at > 0 {
                 Text(status.since, style: .timer)
@@ -181,6 +233,35 @@ struct BlinkingCaret: View {
             .opacity(on ? 1 : 0)
             .animation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true), value: on)
             .onAppear { on = false }
+    }
+}
+
+/// Induló képernyő — a márka belépője, utána elolvad.
+struct IntroOverlay: View {
+    @State private var on = false
+    var body: some View {
+        ZStack {
+            Theme.bg
+            AuroraBackground()
+            VStack(spacing: 20) {
+                LiveRing(working: true, size: 78)
+                    .scaleEffect(on ? 1 : 0.72)
+                Text("Cortex Phantom Agent")
+                    .font(Theme.display(25)).fontWeight(.bold)
+                    .foregroundStyle(Theme.accent)
+                    .opacity(on ? 1 : 0)
+                    .offset(y: on ? 0 : 12)
+                Text("PHANTOM CORE 2")
+                    .font(Theme.ui(11)).fontWeight(.semibold)
+                    .kerning(3)
+                    .foregroundStyle(Theme.txt3)
+                    .opacity(on ? 1 : 0)
+            }
+        }
+        .opacity(on ? 1 : 1)
+        .onAppear {
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.8)) { on = true }
+        }
     }
 }
 
@@ -227,7 +308,7 @@ struct SectionLabel: View {
                 .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .shadow(color: Theme.vio.opacity(0.45), radius: 6, y: 2)
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(Theme.ui(12)).fontWeight(.semibold)
                 .kerning(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(Theme.txt2)
@@ -236,10 +317,11 @@ struct SectionLabel: View {
 }
 
 struct FieldBox<Content: View>: View {
-    @ViewBuilder var content: Content
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
     var body: some View {
         content
-            .font(.callout)
+            .font(Theme.ui(15))
             .foregroundStyle(Theme.txt)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
