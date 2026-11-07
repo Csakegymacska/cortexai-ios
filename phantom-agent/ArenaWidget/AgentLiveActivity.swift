@@ -10,7 +10,7 @@ struct AgentLiveActivity: Widget {
         ActivityConfiguration(for: AgentActivityAttributes.self) { context in
             // ── zárt képernyő / StandBy ──
             LockScreenView(state: context.state)
-                .activityBackgroundTint(Color(red: 0.055, green: 0.051, blue: 0.09))
+                .activityBackgroundTint(Color(red: 0.039, green: 0.039, blue: 0.063))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             DynamicIsland {
