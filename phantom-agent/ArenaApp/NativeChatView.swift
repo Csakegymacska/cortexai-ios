@@ -10,12 +10,15 @@ struct NativeChatView: View {
 
     var body: some View {
         ZStack {
-            AuroraBackground()
-
             VStack(spacing: 0) {
                 messages
                 providerBar
                 inputBar
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("chat.provider.changed"))) { n in
+            if let raw = n.object as? String, let p = ProviderKind(rawValue: raw), session.provider != p {
+                withAnimation(Theme.softSpring) { session.select(p) }
             }
         }
     }
@@ -101,12 +104,12 @@ struct NativeChatView: View {
 
     // ── üres állapot ──
     private var emptyState: some View {
-        VStack(spacing: 18) {
-            LiveRing(working: false, size: 64)
-                .padding(.top, 60)
+        VStack(spacing: 16) {
+            LiveRing(working: false, size: 58)
+                .padding(.top, 30)
             Text("Cortex Phantom Agent")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(Theme.txt)
+                .foregroundStyle(Theme.accent)
             Text(session.provider == .phantom
                  ? "Our own AI — the Phantom Core 2 pipeline.\nAsk anything to begin."
                  : "Frontier models through the Arena API.\nAsk anything to begin.")
