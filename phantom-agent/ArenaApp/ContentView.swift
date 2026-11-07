@@ -1,17 +1,17 @@
-// ContentView — az app háza: natív chat VAGY agent-workspace (web), élő állapot-pill.
+// ContentView — az app háza: natív chat (Cortex Phantom) VAGY saját web-munkaterület.
+// Minden a miénk — arena.ai sehol.
 import SwiftUI
 
 struct ContentView: View {
     @StateObject private var status = StatusClient()
     @State private var isLoading = false
     @State private var showSettings = false
-    @AppStorage("arena.url") private var arenaURL = "https://arena.ai/"
+    @State private var showIntro = true
+    @AppStorage("web.url") private var webURLString = "https://cortanime.eu/ai"
     @AppStorage("engine.kind") private var engineRaw = ChatEngineKind.native.rawValue
-    @AppStorage("chat.provider") private var providerRaw = ProviderKind.phantom.rawValue
 
-    private var webURL: URL { URL(string: arenaURL) ?? URL(string: "https://arena.ai/")! }
+    private var webURL: URL { URL(string: webURLString) ?? URL(string: "https://cortanime.eu/ai")! }
     private var engine: ChatEngineKind { ChatEngineKind(rawValue: engineRaw) ?? .native }
-    private var provider: ProviderKind { ProviderKind(rawValue: providerRaw) ?? .phantom }
 
     var body: some View {
         ZStack {
@@ -35,6 +35,13 @@ struct ContentView: View {
                 }
                 statusBar
             }
+
+            if showIntro {
+                IntroOverlay()
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+                    .zIndex(2)
+            }
         }
         .preferredColorScheme(.dark)
         .animation(Theme.softSpring, value: engineRaw)
@@ -42,6 +49,9 @@ struct ContentView: View {
         .onAppear {
             status.start(poll: 5)
             ActivityManager.shared.sync(with: status.status)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) {
+                withAnimation(.easeOut(duration: 0.55)) { showIntro = false }
+            }
         }
         .onChange(of: status.status) { _, s in
             if s.isWorking {
@@ -60,27 +70,29 @@ struct ContentView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("Cortex Phantom Agent")
-                    .font(.system(.headline, design: .rounded).weight(.bold))
+                    .font(Theme.display(17)).fontWeight(.bold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 HStack(spacing: 5) {
-                    Image(systemName: engine == .native ? (provider == .phantom ? "sparkles" : "cpu") : "globe")
+                    Image(systemName: engine == .native ? "sparkles" : "globe")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(Theme.pink)
-                    Text(engine == .native ? "Native chat · \(provider.label)" : "Agent workspace")
-                        .font(.caption2.weight(.medium))
+                    Text(engine == .native ? "Native chat · our own brain" : "Web workspace · cortanime.eu")
+                        .font(Theme.ui(11))
                         .foregroundStyle(Theme.txt3)
                         .lineLimit(1)
                 }
                 .animation(Theme.softSpring, value: engineRaw)
-                .animation(Theme.softSpring, value: providerRaw)
             }
 
             Spacer(minLength: 8)
 
             StatusPill(status: status.status)
 
-            Button { showSettings = true } label: {
+            Button {
+                Haptics.tap()
+                showSettings = true
+            } label: {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.txt2)
@@ -110,7 +122,7 @@ struct ContentView: View {
                     .transition(.opacity)
             } else {
                 Image(systemName: "moon.zzz").font(.caption).foregroundStyle(Theme.txt3)
-                Text("Ready when you are").font(.caption).foregroundStyle(Theme.txt3)
+                Text("Ready when you are").font(Theme.ui(12)).foregroundStyle(Theme.txt3)
             }
             Spacer()
             Button { status.refresh() } label: {
