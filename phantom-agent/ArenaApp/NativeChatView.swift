@@ -67,11 +67,12 @@ struct NativeChatView: View {
                                 .sweepBorder(true)
                                 .transition(.opacity)
                             } else {
-                                HStack(alignment: .bottom, spacing: 3) {
-                                    Text(streamText)
-                                        .font(Theme.ui(15))
-                                        .foregroundStyle(Theme.txt)
-                                    BlinkingCaret()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    RichMessageView(content: streamText, streaming: true)
+                                    HStack(spacing: 0) {
+                                        BlinkingCaret()
+                                        Spacer(minLength: 0)
+                                    }
                                 }
                                 .padding(12)
                                 .background(Theme.surf, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -184,30 +185,36 @@ struct NativeChatView: View {
     }
 }
 
-/// Üzenet-buborék — a user gradiens, az asszisztens sötét felület (keményebb sarkok).
+/// Üzenet-buborék — a user gradiens, az asszisztens sötét felület, gazdag tartalommal.
 struct BubbleView: View {
     let message: ArenaMessage
     var isUser: Bool { message.role == "user" }
 
     var body: some View {
         HStack {
-            if isUser { Spacer(minLength: 48) }
-            Text(message.content)
-                .font(Theme.ui(15))
-                .foregroundStyle(isUser ? .white : Theme.txt)
-                .textSelection(.enabled)
-                .padding(.horizontal, 14).padding(.vertical, 11)
-                .background {
-                    if isUser {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.accent)
-                    } else {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Theme.surf)
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
-                    }
+            if isUser { Spacer(minLength: 64) }
+            Group {
+                if isUser {
+                    Text(message.content)
+                        .font(Theme.ui(15))
+                        .foregroundStyle(.white)
+                } else {
+                    RichMessageView(content: message.content)
                 }
-                .shadow(color: isUser ? Theme.vio.opacity(0.24) : .clear, radius: 8, y: 3)
-            if !isUser { Spacer(minLength: 48) }
+            }
+            .textSelection(.enabled)
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .background {
+                if isUser {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.accent)
+                } else {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Theme.surf)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
+                }
+            }
+            .shadow(color: isUser ? Theme.vio.opacity(0.24) : .clear, radius: 8, y: 3)
+            if !isUser { Spacer(minLength: 28) }
         }
     }
 }
