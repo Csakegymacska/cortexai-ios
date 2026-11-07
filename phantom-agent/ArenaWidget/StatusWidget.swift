@@ -36,7 +36,7 @@ struct StatusWidgetView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.055, green: 0.051, blue: 0.09)
+            Color(red: 0.039, green: 0.039, blue: 0.063)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     RingIcon(working: entry.status.isWorking)
@@ -71,7 +71,7 @@ struct StatusWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "eu.cortex.phantom.status", provider: StatusProvider()) { entry in
             StatusWidgetView(entry: entry)
-                .containerBackground(for: .widget) { Color(red: 0.055, green: 0.051, blue: 0.09) }
+                .containerBackground(for: .widget) { Color(red: 0.039, green: 0.039, blue: 0.063) }
         }
         .configurationDisplayName("Agent Status")
         .description("What the Cortex Agent is doing right now.")
