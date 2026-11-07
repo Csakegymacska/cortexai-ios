@@ -1,24 +1,13 @@
-// SettingsView — az app beállításai saját kártyás dizájnnal. Semmi külső szolgáltatás.
+// SettingsView — a beállítások saját kártyás dizájnnal. Full natív, semmi webes.
 import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("web.url") private var webURLString = "https://cortanime.eu/ai"
+    @ObservedObject var feed: AgentFeed
     @AppStorage("status.url") private var statusURL = "https://cortanime.eu/api/cortexai/agent/status"
-    @AppStorage("engine.kind") private var engineRaw = ChatEngineKind.native.rawValue
     @AppStorage("ui.reduceMotion") private var reduceMotion = false
 
     @State private var appeared = false
-
-    private var engine: Binding<ChatEngineKind> {
-        Binding(
-            get: { ChatEngineKind(rawValue: engineRaw) ?? .native },
-            set: {
-                Haptics.select()
-                engineRaw = $0.rawValue
-            }
-        )
-    }
 
     var body: some View {
         NavigationStack {
@@ -26,13 +15,12 @@ struct SettingsView: View {
                 PhantomBackdrop()
 
                 ScrollView {
-                    VStack(spacing: 14) {
-                        engineCard.cardEntrance(0, appeared: appeared)
-                        brainCard.cardEntrance(1, appeared: appeared)
-                        workspaceCard.cardEntrance(2, appeared: appeared)
-                        bridgeCard.cardEntrance(3, appeared: appeared)
-                        appearanceCard.cardEntrance(4, appeared: appeared)
-                        aboutCard.cardEntrance(5, appeared: appeared)
+                    VStack(spacing: 12) {
+                        brainCard.cardEntrance(0, appeared: appeared)
+                        runtimeCard.cardEntrance(1, appeared: appeared)
+                        bridgeCard.cardEntrance(2, appeared: appeared)
+                        appearanceCard.cardEntrance(3, appeared: appeared)
+                        aboutCard.cardEntrance(4, appeared: appeared)
                     }
                     .padding(16)
                     .padding(.bottom, 24)
@@ -55,52 +43,13 @@ struct SettingsView: View {
                             .background(Theme.accent, in: Capsule())
                             .shadow(color: Theme.vio.opacity(0.4), radius: 8, y: 3)
                     }
+                    .buttonStyle(PressableStyle())
                 }
             }
         }
         .preferredColorScheme(.dark)
         .presentationBackground(Theme.bg)
         .onAppear { appeared = true }
-    }
-
-    // ── Chat engine ──
-    private var engineCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionLabel(icon: "bubble.left.and.bubble.right.fill", title: "Chat engine")
-            HStack(spacing: 8) {
-                ForEach(ChatEngineKind.allCases) { kind in
-                    let on = engine.wrappedValue == kind
-                    Button {
-                        withAnimation(Theme.spring) { engine.wrappedValue = kind }
-                    } label: {
-                        VStack(spacing: 3) {
-                            Text(kind.label)
-                                .font(Theme.ui(13)).fontWeight(.semibold)
-                            Text(kind == .native ? "Built-in chat" : "Browser")
-                                .font(Theme.ui(10))
-                                .foregroundStyle(on ? .white.opacity(0.75) : Theme.txt3)
-                        }
-                        .foregroundStyle(on ? .white : Theme.txt2)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background {
-                            if on {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.accent)
-                                    .shadow(color: Theme.vio.opacity(0.45), radius: 8, y: 3)
-                            } else {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.surf2)
-                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.line, lineWidth: 1))
-                            }
-                        }
-                        .scaleEffect(on ? 1 : 0.97)
-                    }
-                }
-            }
-            Text(ChatEngineKind(rawValue: engineRaw)?.subtitle ?? "")
-                .font(Theme.ui(11))
-                .foregroundStyle(Theme.txt3)
-        }
-        .cardSurface()
     }
 
     // ── A saját agyunk ──
@@ -123,17 +72,49 @@ struct SettingsView: View {
         .cardSurface()
     }
 
-    // ── Saját web-munkaterület ──
-    private var workspaceCard: some View {
+    // ── Agent runtime — a Linux runner élőben ──
+    private var runtimeCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionLabel(icon: "globe", title: "Web workspace")
-            FieldBox {
-                TextField("Workspace URL", text: $webURLString)
-                    .keyboardType(.URL)
+            SectionLabel(icon: "server.rack", title: "Agent runtime")
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(feed.online ? Theme.ok : Theme.err)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: feed.online ? Theme.ok.opacity(0.7) : .clear, radius: 4)
+                Text(feed.online ? "Runner link: live" : "Runner link: offline")
+                    .font(Theme.ui(14)).fontWeight(.semibold)
+                    .foregroundStyle(Theme.txt)
+                Spacer()
+                Text(feed.log.task.state.uppercased())
+                    .font(Theme.ui(10)).fontWeight(.bold)
+                    .kerning(1)
+                    .foregroundStyle(Theme.txt3)
             }
-            Text("Our own workspace at cortanime.eu/ai — full agent sessions in the browser engine.")
+            if !feed.log.task.title.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape.2")
+                        .font(.caption)
+                        .foregroundStyle(Theme.pink)
+                    Text(feed.log.task.title)
+                        .font(Theme.ui(12))
+                        .foregroundStyle(Theme.txt2)
+                        .lineLimit(1)
+                    Spacer()
+                }
+            }
+            Text("The Linux runner executes agent tasks and streams every step to this device.")
                 .font(Theme.ui(11))
                 .foregroundStyle(Theme.txt3)
+            HStack(spacing: 6) {
+                Image(systemName: "terminal")
+                Text("python3 phantom_runner.py")
+                    .font(Theme.mono)
+            }
+            .foregroundStyle(Theme.txt3)
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.bg.opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
         }
         .cardSurface()
     }
@@ -195,7 +176,7 @@ struct SettingsView: View {
                     .font(Theme.mono)
                     .foregroundStyle(Theme.txt3)
             }
-            Text("Everything in this app is ours — the brain, the workspace, the design. cortanime.eu")
+            Text("Everything in this app is ours — the brain, the runner, the design. Fully native.")
                 .font(Theme.ui(11))
                 .foregroundStyle(Theme.txt3)
         }
