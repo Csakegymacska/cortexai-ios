@@ -82,20 +82,20 @@ struct NativeChatView: View {
         }
     }
 
-    // ── üres állapot — a Phantom Orb a hős ──
+    // ── üres állapot — CoreMark a hős, agent-ízű javaslatokkal ──
     private var emptyState: some View {
         VStack(spacing: 16) {
-            PhantomOrbView()
-                .padding(.top, 12)
+            CoreMark(size: 96, working: true)
+                .padding(.top, 16)
             Text("Cortex Phantom Agent")
                 .font(Theme.display(23)).fontWeight(.bold)
                 .foregroundStyle(Theme.accent)
-            Text("Our own AI — the Phantom Core 2 pipeline.\nAsk anything to begin.")
+            Text("Our own AI — the Phantom Core 2 pipeline.\nGive it a task or ask anything.")
                 .font(Theme.ui(14))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.txt2)
             HStack(spacing: 8) {
-                ForEach(["Explain a concept", "Write code", "Plan a project"], id: \.self) { s in
+                ForEach(["Plan a project", "Write code", "Run research"], id: \.self) { s in
                     Button {
                         Haptics.tap()
                         input = s
@@ -167,27 +167,7 @@ struct NativeChatView: View {
     }
 }
 
-/// A Phantom Orb — beépített grafika, lebegő-animációval, sötét háttéren úszó fénnyel.
-struct PhantomOrbView: View {
-    var size: CGFloat = 160
-    @AppStorage("ui.reduceMotion") private var reduceMotion = false
-    @State private var float = false
-
-    var body: some View {
-        Image("PhantomOrb")
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .blendMode(.screen)
-            .scaleEffect(float && !reduceMotion ? 1.04 : 1.0)
-            .offset(y: float && !reduceMotion ? -8 : 4)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: float)
-            .onAppear { float = true }
-            .accessibilityHidden(true)
-    }
-}
-
-/// Üzenet-buborék — a user gradiens, az asszisztens sötét felület.
+/// Üzenet-buborék — a user gradiens, az asszisztens sötét felület (keményebb sarkok).
 struct BubbleView: View {
     let message: ArenaMessage
     var isUser: Bool { message.role == "user" }
@@ -202,14 +182,14 @@ struct BubbleView: View {
                 .padding(.horizontal, 14).padding(.vertical, 11)
                 .background {
                     if isUser {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Theme.accent)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.accent)
                     } else {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .fill(Theme.surf)
-                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.line, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
                     }
                 }
-                .shadow(color: isUser ? Theme.vio.opacity(0.28) : .clear, radius: 10, y: 4)
+                .shadow(color: isUser ? Theme.vio.opacity(0.24) : .clear, radius: 8, y: 3)
             if !isUser { Spacer(minLength: 48) }
         }
     }
