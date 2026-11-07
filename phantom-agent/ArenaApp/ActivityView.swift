@@ -43,30 +43,37 @@ struct AgentTabs: View {
     }
 }
 
-/// Misszió-sáv — a futó task fejléce: cím, állapot, eltelt idő.
+/// Misszió-sáv — a futó task fejléce: cím, állapot, haladás.
 struct MissionStrip: View {
     let log: AgentLog
     var body: some View {
         if log.task.state != "idle" && !log.task.title.isEmpty {
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(log.task.state == "working" ? Theme.pink : (log.task.state == "done" ? Theme.ok : Theme.err))
-                    .frame(width: 8, height: 8)
-                    .shadow(color: log.task.state == "working" ? Theme.pink.opacity(0.8) : .clear, radius: 4)
-                Text(log.task.title)
-                    .font(Theme.ui(13)).fontWeight(.semibold)
-                    .foregroundStyle(Theme.txt)
-                    .lineLimit(1)
-                Spacer()
-                Text(log.task.state.uppercased())
-                    .font(Theme.ui(10)).fontWeight(.bold)
-                    .kerning(1)
-                    .foregroundStyle(log.task.state == "working" ? Theme.pink : Theme.txt3)
-                Text("\(log.steps.filter { $0.state == "done" || $0.state == "failed" } .count)/\(log.steps.count)")
-                    .font(Theme.mono)
-                    .foregroundStyle(Theme.txt3)
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(log.task.state == "working" ? Theme.pink : (log.task.state == "done" ? Theme.ok : Theme.err))
+                        .frame(width: 8, height: 8)
+                        .shadow(color: log.task.state == "working" ? Theme.pink.opacity(0.8) : .clear, radius: 4)
+                    Text(log.task.title)
+                        .font(Theme.ui(13)).fontWeight(.semibold)
+                        .foregroundStyle(Theme.txt)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(log.task.state.uppercased())
+                        .font(Theme.ui(10)).fontWeight(.bold)
+                        .kerning(1)
+                        .foregroundStyle(log.task.state == "working" ? Theme.pink : Theme.txt3)
+                    Text("\(log.steps.filter { $0.state == "done" || $0.state == "failed" }.count)/\(log.steps.count)")
+                        .font(Theme.mono)
+                        .foregroundStyle(Theme.txt3)
+                }
+                .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 8)
+                if log.task.state == "working" {
+                    IndeterminateBar(height: 2)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                }
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
             .background(Theme.surf, in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
             .padding(.horizontal, 14)
@@ -180,8 +187,9 @@ struct StepCard: View {
         .background(Theme.surf, in: RoundedRectangle(cornerRadius: Theme.rMd, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.rMd, style: .continuous)
-                .stroke(step.state == "working" ? Theme.vio.opacity(0.5) : Theme.line, lineWidth: 1)
+                .stroke(step.state == "working" ? Color.clear : Theme.line, lineWidth: 1)
         )
+        .sweepBorder(step.state == "working")
     }
 
     @ViewBuilder private var glyph: some View {
