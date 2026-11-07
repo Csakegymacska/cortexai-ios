@@ -1,23 +1,30 @@
-// Theme — a Cortex Phantom Agent dizájnvonal: sötét/violet, élő fényekkel.
+// Theme — a Cortex Phantom Agent dizájnvonal: „mérnöki konzol".
+// Sötét, szűk felületcsalád, kemény geometria (kis sarkok), hajszálvonalak,
+// minimális árnyék, mono feliratok — nem dekoráció, hanem műszerfal.
 // Szabály: UI-szöveg angolul, emoji sehol — csak SF Symbols és vektor.
-// Saját betűtípusok: Sora (display) + Inter (UI) — beépítve, Resources/Fonts.
+// Saját betűtípusok: Sora (display) + Inter (UI) — Resources/Fonts.
 import SwiftUI
 import UIKit
 
 enum Theme {
-    // Háttér-szintek
-    static let bg = Color(red: 0.043, green: 0.043, blue: 0.071)        // #0B0B12
-    static let surf = Color(red: 0.086, green: 0.082, blue: 0.137)      // #161523
-    static let surf2 = Color(red: 0.125, green: 0.118, blue: 0.192)     // #201E31
-    static let line = Color.white.opacity(0.08)
+    // Felület-család — közel egymáshoz, hogy „egy környezet" legyen
+    static let bg = Color(red: 0.039, green: 0.039, blue: 0.063)        // #0A0A10
+    static let surf = Color(red: 0.071, green: 0.071, blue: 0.110)      // #12121C
+    static let surf2 = Color(red: 0.098, green: 0.094, blue: 0.145)     // #191825
+    static let line = Color.white.opacity(0.07)
+    static let line2 = Color.white.opacity(0.12)
 
-    // Violet gradiens
+    // Kiemelő szín — TAKARÉKOSAN: csak futó állapot, elsődleges gomb
     static let vio = Color(red: 0.486, green: 0.361, blue: 0.965)       // #7C5CF6
     static let pink = Color(red: 0.910, green: 0.475, blue: 0.976)      // #E879F9
-    static let blue = Color(red: 0.290, green: 0.345, blue: 0.930)      // hideg aurora-folt
     static var accent: LinearGradient {
         LinearGradient(colors: [vio, pink], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
+
+    // Állapot-színek — a lépés-napló jelzőihez
+    static let ok = Color(red: 0.204, green: 0.827, blue: 0.600)       // #34D399
+    static let warn = Color(red: 0.961, green: 0.651, blue: 0.137)     // #F5A623
+    static let err = Color(red: 0.973, green: 0.443, blue: 0.443)      // #F87171
 
     static let txt = Color.white
     static let txt2 = Color.white.opacity(0.62)
@@ -29,91 +36,122 @@ enum Theme {
 
     static let mono = Font.system(.caption, design: .monospaced).weight(.medium)
 
+    // Sarkok — kemény geometria
+    static let rSm: CGFloat = 8
+    static let rMd: CGFloat = 12
+    static let rLg: CGFloat = 16
+
     // Animációs ívek
     static let spring = Animation.spring(response: 0.42, dampingFraction: 0.82)
     static let softSpring = Animation.spring(response: 0.6, dampingFraction: 0.9)
 }
 
-/// Haptikus visszajelzés — a prémium érzés apró, de fontos része.
+/// Haptikus visszajelzés.
 enum Haptics {
     static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
     static func select() { UISelectionFeedbackGenerator().selectionChanged() }
     static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
 }
 
-/// Aurora-háttér — beépített nebula-grafika + élő fénypontok + kódolt aurora.
-struct AuroraBackground: View {
+/// Háttér — sötét alap, finom rács, egyetlen fényfolt. Nincs fotó, nincs AI-art.
+struct PhantomBackdrop: View {
     @AppStorage("ui.reduceMotion") private var reduceMotion = false
-    @State private var spin = false
     @State private var drift = false
 
     var body: some View {
         ZStack {
             Theme.bg
 
-            // beépített nebula — lassú lebegés
-            Image("BgNebula")
-                .resizable()
-                .scaledToFill()
-                .opacity(0.62)
-                .scaleEffect(drift && !reduceMotion ? 1.12 : 1.0)
-                .offset(x: drift && !reduceMotion ? -14 : 8, y: drift && !reduceMotion ? -18 : 6)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 22).repeatForever(autoreverses: true), value: drift)
-
-            // kódolt aurora — mozgás a kép fölött
-            GeometryReader { geo in
-                let s = max(geo.size.width, geo.size.height)
-                RadialGradient(colors: [Theme.vio.opacity(0.22), .clear], center: .center, startRadius: 0, endRadius: s * 0.52)
-                    .frame(width: s, height: s)
-                    .offset(x: -s * 0.30, y: -s * 0.34)
-                    .blur(radius: 46)
-                RadialGradient(colors: [Theme.pink.opacity(0.14), .clear], center: .center, startRadius: 0, endRadius: s * 0.46)
-                    .frame(width: s, height: s)
-                    .offset(x: geo.size.width * 0.44, y: geo.size.height * 0.50)
-                    .blur(radius: 52)
+            // rács — műszerfal-érzet
+            Canvas { ctx, size in
+                let step: CGFloat = 30
+                var path = Path()
+                var x: CGFloat = 0
+                while x < size.width { path.move(to: CGPoint(x: x, y: 0)); path.addLine(to: CGPoint(x: x, y: size.height)); x += step }
+                var y: CGFloat = 0
+                while y < size.height { path.move(to: CGPoint(x: 0, y: y)); path.addLine(to: CGPoint(x: size.width, y: y)); y += step }
+                ctx.stroke(path, with: .color(.white.opacity(0.028)), lineWidth: 0.5)
             }
-            .rotationEffect(.degrees(spin && !reduceMotion ? 8 : -8))
-            .animation(reduceMotion ? nil : .easeInOut(duration: 14).repeatForever(autoreverses: true), value: spin)
 
-            // lebegő fény-pontok
-            SparkleField()
+            // egyetlen, lassan lebegő fényfolt — visszafogott
+            GeometryReader { geo in
+                RadialGradient(colors: [Theme.vio.opacity(0.16), .clear], center: .center, startRadius: 0,
+                               endRadius: max(geo.size.width, geo.size.height) * 0.6)
+                    .offset(x: -geo.size.width * 0.22, y: -geo.size.height * 0.26)
+                    .blur(radius: 30)
+                    .offset(y: drift && !reduceMotion ? -16 : 8)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 12).repeatForever(autoreverses: true), value: drift)
+            }
 
-            // olvashatóság: sötétítés a lap alján
-            LinearGradient(colors: [.clear, Theme.bg.opacity(0.55)], startPoint: .center, endPoint: .bottom)
+            // olvashatóság
+            LinearGradient(colors: [.clear, Theme.bg.opacity(0.45)], startPoint: .center, endPoint: .bottom)
         }
         .ignoresSafeArea()
-        .onAppear { spin = true; drift = true }
+        .onAppear { drift = true }
     }
 }
 
-/// Lebegő, pislogó fény-pontok — Canvas, nagyon olcsó.
-struct SparkleField: View {
+/// CoreMark — a márkajel VETOROSAN, kézművesen: gyűrű + beosztások + hexmag.
+struct CoreMark: View {
+    var size: CGFloat = 64
+    var working: Bool = true
     @AppStorage("ui.reduceMotion") private var reduceMotion = false
+    @State private var spin = false
+    @State private var pulse = false
+
     var body: some View {
-        if reduceMotion {
-            Color.clear
-        } else {
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { tl in
-                Canvas { ctx, size in
-                    let t = tl.date.timeIntervalSinceReferenceDate
-                    for i in 0..<24 {
-                        let seed = Double(i) * 7.31
-                        let x = (sin(seed * 1.7 + t * 0.05) * 0.5 + 0.5) * size.width
-                        let y = ((cos(seed * 2.3 + t * 0.035) * 0.5 + 0.5) * size.height + t * 5)
-                            .truncatingRemainder(dividingBy: size.height)
-                        let tw = 0.5 + 0.5 * sin(t * 1.3 + seed)
-                        let r = 1.0 + 1.5 * (0.5 + 0.5 * sin(seed * 3.1))
-                        ctx.opacity = 0.08 + 0.20 * tw
-                        ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: r * 2, height: r * 2)), with: .color(.white))
-                    }
-                }
+        ZStack {
+            // külső gyűrű
+            Circle()
+                .strokeBorder(Theme.line2, lineWidth: 1)
+                .frame(width: size, height: size)
+            // beosztások — 12 darab, műszer
+            ForEach(0..<12, id: \.self) { i in
+                Capsule()
+                    .fill(i % 3 == 0 ? Theme.vio.opacity(0.75) : Theme.line2)
+                    .frame(width: 1.5, height: size * (i % 3 == 0 ? 0.10 : 0.055))
+                    .offset(y: -size * 0.5 + size * 0.045)
+                    .rotationEffect(.degrees(Double(i) / 12 * 360))
             }
-            .allowsHitTesting(false)
+            // forgó kiemelő ív
+            Circle()
+                .trim(from: 0, to: 0.22)
+                .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: size * 0.82, height: size * 0.82)
+                .rotationEffect(.degrees(spin && !reduceMotion ? 360 : 0))
+                .animation(reduceMotion ? nil : .linear(duration: 7).repeatForever(autoreverses: false), value: spin)
+            // hexmag
+            HexShape()
+                .fill(Theme.accent)
+                .frame(width: size * 0.34, height: size * 0.34)
+                .shadow(color: Theme.vio.opacity(0.55), radius: pulse ? 12 : 6)
+                .scaleEffect(pulse && !reduceMotion ? 1.06 : 1.0)
+            HexShape()
+                .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                .frame(width: size * 0.46, height: size * 0.46)
         }
+        .frame(width: size, height: size)
+        .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: pulse)
+        .onAppear { spin = true; pulse = true }
     }
 }
 
-/// Élő gyűrű — az agent „arca". Dolgozik: forgó gradiens, pulzáló mag, aura.
+struct HexShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        let r = min(rect.width, rect.height) / 2
+        for i in 0..<6 {
+            let a = Double(i) * .pi / 3 - .pi / 2
+            let pt = CGPoint(x: c.x + r * cos(a), y: c.y + r * sin(a))
+            if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+        }
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// Élő gyűrű — az agent „arca" a fejlécben (finom, műszer-jellegű).
 struct LiveRing: View {
     let working: Bool
     var size: CGFloat = 30
@@ -123,43 +161,32 @@ struct LiveRing: View {
 
     var body: some View {
         ZStack {
-            // aura
             Circle()
                 .fill(RadialGradient(
-                    colors: [(working ? Theme.pink : Theme.vio).opacity(working ? 0.34 : 0.16), .clear],
+                    colors: [(working ? Theme.pink : Theme.vio).opacity(working ? 0.28 : 0.12), .clear],
                     center: .center, startRadius: 0, endRadius: size * 0.85))
-                .frame(width: size * 1.75, height: size * 1.75)
-                .opacity(pulse && !reduceMotion ? 1 : 0.66)
-            // gyűrű
+                .frame(width: size * 1.6, height: size * 1.6)
+                .opacity(pulse && !reduceMotion ? 1 : 0.6)
             Circle()
-                .strokeBorder(
-                    AngularGradient(colors: working
-                        ? [Theme.vio, Theme.pink, Theme.vio.opacity(0.75), Theme.pink, Theme.vio]
-                        : [Theme.vio.opacity(0.7), Theme.pink.opacity(0.35), Theme.vio.opacity(0.7)],
-                        center: .center),
-                    lineWidth: max(2, size * 0.085)
-                )
+                .strokeBorder(Theme.line2, lineWidth: 1)
                 .frame(width: size, height: size)
-                .shadow(color: (working ? Theme.pink : Theme.vio).opacity(working ? 0.55 : 0.28), radius: working ? 8 : 5)
+            Circle()
+                .trim(from: 0, to: 0.25)
+                .stroke(working ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.vio.opacity(0.55)),
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: size * 0.86, height: size * 0.86)
                 .rotationEffect(.degrees(spin && !reduceMotion ? 360 : 0))
-                .animation(reduceMotion ? nil : .linear(duration: working ? 5 : 16).repeatForever(autoreverses: false), value: spin)
-            // mag
+                .animation(reduceMotion ? nil : .linear(duration: working ? 4 : 12).repeatForever(autoreverses: false), value: spin)
             if working {
                 Circle()
                     .fill(Theme.pink.opacity(0.92))
-                    .frame(width: size * 0.32, height: size * 0.32)
-                    .scaleEffect(pulse && !reduceMotion ? 1.16 : 0.92)
-                    .shadow(color: Theme.pink.opacity(0.85), radius: 6)
+                    .frame(width: size * 0.26, height: size * 0.26)
+                    .scaleEffect(pulse && !reduceMotion ? 1.2 : 0.9)
+                    .shadow(color: Theme.pink.opacity(0.8), radius: 5)
             } else {
-                ZStack {
-                    Circle()
-                        .fill(Theme.vio.opacity(0.16))
-                        .frame(width: size * 0.62, height: size * 0.62)
-                    Image(systemName: "sparkles")
-                        .font(.system(size: size * 0.30, weight: .bold))
-                        .foregroundStyle(Theme.txt)
-                        .shadow(color: Theme.vio.opacity(0.65), radius: 4)
-                }
+                HexShape()
+                    .fill(Theme.accent)
+                    .frame(width: size * 0.30, height: size * 0.30)
             }
         }
         .frame(width: size, height: size)
@@ -168,7 +195,7 @@ struct LiveRing: View {
     }
 }
 
-/// Főgomb — gradiens, fény-sugárnyomással, finom nyomás-visszajelzéssel.
+/// Főgomb — gradiens, takarékos fény.
 struct GlowButton: View {
     let title: String
     let icon: String
@@ -190,24 +217,24 @@ struct GlowButton: View {
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 18).padding(.vertical, 12)
-            .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: Theme.vio.opacity(pressed ? 0.15 : 0.45), radius: pressed ? 4 : 12, y: 4)
+            .background(Theme.accent, in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
+            .shadow(color: Theme.vio.opacity(pressed ? 0.15 : 0.4), radius: pressed ? 4 : 10, y: 4)
             .scaleEffect(pressed ? 0.96 : 1)
         }
     }
 }
 
-/// Állapot-pill — a fejlécben, csendes élő fénnyel.
+/// Állapot-pill — kompakt, téglalap, nem kapszula.
 struct StatusPill: View {
     let status: AgentStatus
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 7) {
             Circle()
                 .fill(status.isWorking ? Theme.pink : Theme.txt3)
-                .frame(width: 8, height: 8)
-                .shadow(color: status.isWorking ? Theme.pink.opacity(0.8) : .clear, radius: 5)
+                .frame(width: 7, height: 7)
+                .shadow(color: status.isWorking ? Theme.pink.opacity(0.8) : .clear, radius: 4)
             Text(AgentState(rawValue: status.state)?.label ?? "Idle")
-                .font(Theme.ui(12)).fontWeight(.semibold)
+                .font(Theme.ui(11)).fontWeight(.semibold)
                 .foregroundStyle(Theme.txt2)
             if status.isWorking && status.at > 0 {
                 Text(status.since, style: .timer)
@@ -216,9 +243,9 @@ struct StatusPill: View {
                     .monospacedDigit()
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 7)
-        .background(Theme.surf2, in: Capsule())
-        .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(Theme.surf2, in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
         .animation(Theme.softSpring, value: status.state)
     }
 }
@@ -236,62 +263,55 @@ struct BlinkingCaret: View {
     }
 }
 
-/// Induló képernyő — a márka belépője, utána elolvad.
+/// Induló képernyő — CoreMark + wordmark, aztán elolvad.
 struct IntroOverlay: View {
     @State private var on = false
     var body: some View {
         ZStack {
             Theme.bg
-            AuroraBackground()
+            PhantomBackdrop()
             VStack(spacing: 20) {
-                LiveRing(working: true, size: 78)
+                CoreMark(size: 84, working: true)
                     .scaleEffect(on ? 1 : 0.72)
                 Text("Cortex Phantom Agent")
                     .font(Theme.display(25)).fontWeight(.bold)
                     .foregroundStyle(Theme.accent)
                     .opacity(on ? 1 : 0)
                     .offset(y: on ? 0 : 12)
-                Text("PHANTOM CORE 2")
+                Text("AGENT CONSOLE")
                     .font(Theme.ui(11)).fontWeight(.semibold)
                     .kerning(3)
                     .foregroundStyle(Theme.txt3)
                     .opacity(on ? 1 : 0)
             }
         }
-        .opacity(on ? 1 : 1)
         .onAppear {
             withAnimation(.spring(response: 0.7, dampingFraction: 0.8)) { on = true }
         }
     }
 }
 
-// ── felület-építők: kártya, szekció-címke, beviteli doboz ──
+// ── felület-építők ──
 
 struct CardSurface: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(16)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(LinearGradient(colors: [Theme.surf2.opacity(0.92), Theme.surf.opacity(0.92)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-            )
+            .background(Theme.surf, in: RoundedRectangle(cornerRadius: Theme.rMd, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.rMd, style: .continuous)
                     .stroke(Theme.line, lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
     }
 }
 
 extension View {
     func cardSurface() -> some View { modifier(CardSurface()) }
 
-    /// Kártyák belépő-animációja egymás után.
     func cardEntrance(_ index: Int, appeared: Bool) -> some View {
         opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 14)
+            .offset(y: appeared ? 0 : 12)
             .animation(.spring(response: 0.5, dampingFraction: 0.82).delay(Double(index) * 0.05), value: appeared)
     }
 }
@@ -300,18 +320,15 @@ struct SectionLabel: View {
     let icon: String
     let title: String
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 26, height: 26)
-                .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .shadow(color: Theme.vio.opacity(0.45), radius: 6, y: 2)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Theme.pink)
             Text(title)
-                .font(Theme.ui(12)).fontWeight(.semibold)
-                .kerning(0.8)
+                .font(Theme.ui(11)).fontWeight(.semibold)
+                .kerning(1)
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.txt2)
+                .foregroundStyle(Theme.txt3)
         }
     }
 }
@@ -325,8 +342,8 @@ struct FieldBox<Content: View>: View {
             .foregroundStyle(Theme.txt)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
-            .padding(.horizontal, 12).padding(.vertical, 11)
-            .background(Theme.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.line, lineWidth: 1))
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .background(Theme.bg.opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
     }
 }
