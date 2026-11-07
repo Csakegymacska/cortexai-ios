@@ -1,19 +1,13 @@
-// ContentView — az agent-konzol háza: Chat / Activity / Console fülek,
-// élő misszió-sáv, állapot. Minden a miénk.
+// ContentView — az agent-konzol háza: Chat / Activity / Console, full natív.
+// Nincs webes nézet, nincs külső oldal — minden a miénk, minden natív.
 import SwiftUI
 
 struct ContentView: View {
     @StateObject private var status = StatusClient()
     @StateObject private var feed = AgentFeed()
-    @State private var isLoading = false
     @State private var showSettings = false
     @State private var showIntro = true
     @State private var tab = 0
-    @AppStorage("web.url") private var webURLString = "https://cortanime.eu/ai"
-    @AppStorage("engine.kind") private var engineRaw = ChatEngineKind.native.rawValue
-
-    private var webURL: URL { URL(string: webURLString) ?? URL(string: "https://cortanime.eu/ai")! }
-    private var engine: ChatEngineKind { ChatEngineKind(rawValue: engineRaw) ?? .native }
 
     var body: some View {
         ZStack {
@@ -21,29 +15,22 @@ struct ContentView: View {
 
             VStack(spacing: 0) {
                 header
-
-                if engine == .agentWeb {
-                    WebView(isLoading: $isLoading, url: webURL)
-                        .ignoresSafeArea(edges: .bottom)
-                    if isLoading { ProgressView().controlSize(.large).tint(Theme.pink) }
-                } else {
-                    MissionStrip(log: feed.log)
-                    AgentTabs(tab: $tab)
-                    ZStack {
-                        switch tab {
-                        case 0:
-                            NativeChatView()
-                                .transition(.opacity.combined(with: .scale(scale: 0.99)))
-                        case 1:
-                            ActivityView(feed: feed)
-                                .transition(.opacity)
-                        default:
-                            ConsoleView(feed: feed)
-                                .transition(.opacity)
-                        }
+                MissionStrip(log: feed.log)
+                AgentTabs(tab: $tab)
+                ZStack {
+                    switch tab {
+                    case 0:
+                        NativeChatView()
+                            .transition(.opacity.combined(with: .scale(scale: 0.99)))
+                    case 1:
+                        ActivityView(feed: feed)
+                            .transition(.opacity)
+                    default:
+                        ConsoleView(feed: feed)
+                            .transition(.opacity)
                     }
-                    .animation(Theme.softSpring, value: tab)
                 }
+                .animation(Theme.softSpring, value: tab)
                 statusBar
             }
 
@@ -55,8 +42,7 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .animation(Theme.softSpring, value: engineRaw)
-        .sheet(isPresented: $showSettings) { SettingsView() }
+        .sheet(isPresented: $showSettings) { SettingsView(feed: feed) }
         .onAppear {
             status.start(poll: 5)
             feed.start(poll: 4)
@@ -90,12 +76,11 @@ struct ContentView: View {
                     Image(systemName: "terminal")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(Theme.pink)
-                    Text(engine == .native ? "Agent console · our own brain" : "Web workspace · cortanime.eu")
+                    Text("Agent console · our own brain")
                         .font(Theme.ui(11))
                         .foregroundStyle(Theme.txt3)
                         .lineLimit(1)
                 }
-                .animation(Theme.softSpring, value: engineRaw)
             }
 
             Spacer(minLength: 8)
@@ -113,31 +98,41 @@ struct ContentView: View {
                     .background(Theme.surf2, in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
             }
+            .buttonStyle(PressableStyle())
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
         .background(Theme.bg.opacity(0.92))
         .overlay(Rectangle().fill(Theme.line).frame(height: 1), alignment: .bottom)
     }
 
-    // ── alsó sáv ──
+    // ── alsó sáv — élő lépésszöveg, mozgó háromponttal ──
     private var statusBar: some View {
         HStack(spacing: 10) {
             if status.status.isWorking {
                 ProgressView().controlSize(.mini).tint(Theme.pink)
-                Text(status.status.step.isEmpty ? "Working…" : status.status.step)
-                    .font(Theme.mono)
-                    .foregroundStyle(Theme.txt2)
-                    .lineLimit(1)
-                    .id(status.status.step)
-                    .transition(.opacity)
+                HStack(spacing: 0) {
+                    Text(status.status.step.isEmpty ? "Working" : status.status.step)
+                        .font(Theme.mono)
+                        .foregroundStyle(Theme.txt2)
+                        .lineLimit(1)
+                    Ellipsis()
+                        .font(Theme.mono)
+                }
+                .id(status.status.step)
+                .transition(.opacity)
             } else {
                 Image(systemName: "moon.zzz").font(.caption).foregroundStyle(Theme.txt3)
                 Text("Ready when you are").font(Theme.ui(12)).foregroundStyle(Theme.txt3)
             }
             Spacer()
-            Button { status.refresh(); feed.refresh() } label: {
+            Button {
+                Haptics.tap()
+                status.refresh()
+                feed.refresh()
+            } label: {
                 Image(systemName: "arrow.clockwise").font(.caption).foregroundStyle(Theme.txt3)
             }
+            .buttonStyle(PressableStyle())
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Theme.surf.opacity(0.9))
