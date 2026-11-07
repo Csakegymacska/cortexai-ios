@@ -35,7 +35,7 @@ final class AccountStore: ObservableObject {
            let u = try? JSONDecoder().decode(AccountUser.self, from: snap) {
             user = u
         }
-        let saved = Keychain.read(Self.sessionKey)
+        let saved = Keychain.read(Self.sessionKey) ?? ""
         if !saved.isEmpty {
             let cookie = HTTPCookie(properties: [
                 .domain: "cortanime.eu", .path: "/",
@@ -49,7 +49,7 @@ final class AccountStore: ObservableObject {
 
     /// Launch call: restores the session and validates it against the server.
     func start() async {
-        if !Keychain.read(Self.sessionKey).isEmpty || user != nil {
+        if !(Keychain.read(Self.sessionKey) ?? "").isEmpty || user != nil {
             await refresh()
         }
     }
