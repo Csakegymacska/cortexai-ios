@@ -60,7 +60,7 @@ func parseRich(_ s: String) -> [RichBlock] {
     return blocks
 }
 
-private let shellLangs: Set<String> = ["bash", "sh", "shell", "zsh", "console", "terminal"]
+let shellLangs: Set<String> = ["bash", "sh", "shell", "zsh", "console", "terminal"]
 
 /// Terminál-blokk lesz-e: shell-nyelv ÉS dolláros prompt az első soron.
 private func isTerminal(_ lang: String, _ code: String) -> Bool {
