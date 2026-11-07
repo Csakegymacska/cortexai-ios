@@ -54,15 +54,30 @@ struct NativeChatView: View {
                     if session.streaming {
                         HStack(alignment: .bottom, spacing: 10) {
                             LiveRing(working: true, size: 26)
-                            HStack(alignment: .bottom, spacing: 3) {
-                                Text(streamText)
-                                    .font(Theme.ui(15))
-                                    .foregroundStyle(Theme.txt)
-                                BlinkingCaret()
+                            if streamText.isEmpty {
+                                // gondolkodás — mielőtt jön az első szó
+                                HStack(spacing: 10) {
+                                    TypingDots()
+                                    Text("Thinking")
+                                        .font(Theme.ui(13))
+                                        .foregroundStyle(Theme.txt3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 14)
+                                .background(Theme.surf, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .sweepBorder(true)
+                                .transition(.opacity)
+                            } else {
+                                HStack(alignment: .bottom, spacing: 3) {
+                                    Text(streamText)
+                                        .font(Theme.ui(15))
+                                        .foregroundStyle(Theme.txt)
+                                    BlinkingCaret()
+                                }
+                                .padding(12)
+                                .background(Theme.surf, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
+                                .sweepBorder(true)
                             }
-                            .padding(12)
-                            .background(Theme.surf, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.line, lineWidth: 1))
                             Spacer(minLength: 40)
                         }
                         .id("streaming")
@@ -108,6 +123,7 @@ struct NativeChatView: View {
                             .background(Theme.surf2, in: Capsule())
                             .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
                     }
+                    .buttonStyle(PressableStyle())
                 }
             }
             .padding(.top, 6)
@@ -140,6 +156,7 @@ struct NativeChatView: View {
                     .scaleEffect(canSend ? 1 : 0.92)
             }
             .disabled(!canSend)
+            .buttonStyle(PressableStyle())
             .animation(Theme.spring, value: canSend)
         }
         .padding(.horizontal, 14)
