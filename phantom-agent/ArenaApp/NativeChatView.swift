@@ -1,5 +1,5 @@
-// NativeChatView — teljesen natív chat a hivatalos Arena API-n (api.arena.ai).
-// Animált buborékok, élő stream-caret, gradiens háttér — WebView nélkül.
+// NativeChatView — teljesen natív chat a SAJÁT AI-nkkal (Cortex Phantom / Phantom Core 2).
+// Animált buborékok, élő stream-caret, nebula-háttér — minden a miénk.
 import SwiftUI
 
 struct NativeChatView: View {
@@ -12,48 +12,28 @@ struct NativeChatView: View {
         ZStack {
             VStack(spacing: 0) {
                 messages
-                providerBar
+                brainChip
                 inputBar
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("chat.provider.changed"))) { n in
-            if let raw = n.object as? String, let p = ProviderKind(rawValue: raw), session.provider != p {
-                withAnimation(Theme.softSpring) { session.select(p) }
             }
         }
     }
 
-    // ── provider-váltó: Cortex Phantom (a mi AI-nk) / Arena API ──
-    private var providerBar: some View {
+    // ── agy-címke: mivel beszélsz — saját jelkép, nem választó ──
+    private var brainChip: some View {
         HStack(spacing: 6) {
-            ForEach(ProviderKind.allCases) { p in
-                let on = session.provider == p
-                Button {
-                    withAnimation(Theme.spring) { session.select(p) }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: p == .phantom ? "sparkles" : "cpu")
-                            .font(.caption2)
-                        Text(p.label)
-                            .font(.caption.weight(.semibold))
-                    }
-                    .foregroundStyle(on ? .white : Theme.txt2)
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background {
-                        if on {
-                            Capsule().fill(Theme.accent)
-                                .shadow(color: Theme.vio.opacity(0.45), radius: 8, y: 2)
-                        } else {
-                            Capsule().fill(Theme.surf2)
-                                .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
-                        }
-                    }
-                    .scaleEffect(on ? 1 : 0.94)
-                }
-            }
+            Image(systemName: "sparkles")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Theme.pink)
+            Text("Phantom Core 2")
+                .font(Theme.ui(11)).fontWeight(.semibold)
+                .foregroundStyle(Theme.txt2)
+            Circle().fill(Theme.vio.opacity(0.5)).frame(width: 3, height: 3)
+            Text("our own brain")
+                .font(Theme.ui(10))
+                .foregroundStyle(Theme.txt3)
             Spacer()
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 18)
         .padding(.bottom, 8)
     }
 
@@ -76,7 +56,7 @@ struct NativeChatView: View {
                             LiveRing(working: true, size: 26)
                             HStack(alignment: .bottom, spacing: 3) {
                                 Text(streamText)
-                                    .font(.body)
+                                    .font(Theme.ui(15))
                                     .foregroundStyle(Theme.txt)
                                 BlinkingCaret()
                             }
@@ -102,29 +82,27 @@ struct NativeChatView: View {
         }
     }
 
-    // ── üres állapot ──
+    // ── üres állapot — a Phantom Orb a hős ──
     private var emptyState: some View {
         VStack(spacing: 16) {
-            LiveRing(working: false, size: 58)
-                .padding(.top, 30)
+            PhantomOrbView()
+                .padding(.top, 12)
             Text("Cortex Phantom Agent")
-                .font(.title2.weight(.bold))
+                .font(Theme.display(23)).fontWeight(.bold)
                 .foregroundStyle(Theme.accent)
-            Text(session.provider == .phantom
-                 ? "Our own AI — the Phantom Core 2 pipeline.\nAsk anything to begin."
-                 : "Frontier models through the Arena API.\nAsk anything to begin.")
-                .font(.subheadline)
+            Text("Our own AI — the Phantom Core 2 pipeline.\nAsk anything to begin.")
+                .font(Theme.ui(14))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.txt2)
-                .animation(Theme.softSpring, value: session.provider)
             HStack(spacing: 8) {
                 ForEach(["Explain a concept", "Write code", "Plan a project"], id: \.self) { s in
                     Button {
+                        Haptics.tap()
                         input = s
                         send()
                     } label: {
                         Text(s)
-                            .font(.caption.weight(.medium))
+                            .font(Theme.ui(12)).fontWeight(.medium)
                             .foregroundStyle(Theme.txt2)
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .background(Theme.surf2, in: Capsule())
@@ -132,7 +110,7 @@ struct NativeChatView: View {
                     }
                 }
             }
-            .padding(.top, 8)
+            .padding(.top, 6)
         }
         .frame(maxWidth: .infinity)
     }
@@ -141,6 +119,7 @@ struct NativeChatView: View {
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 10) {
             TextField("Message", text: $input, axis: .vertical)
+                .font(Theme.ui(15))
                 .lineLimit(1...5)
                 .padding(.horizontal, 14).padding(.vertical, 11)
                 .background(Theme.surf, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -149,6 +128,7 @@ struct NativeChatView: View {
                 .animation(Theme.softSpring, value: focused)
 
             Button {
+                Haptics.tap()
                 send()
             } label: {
                 Image(systemName: "arrow.up")
@@ -178,15 +158,32 @@ struct NativeChatView: View {
         input = ""
         streamText = ""
         focused = false
-        withAnimation(Theme.spring) {
-            // az üzenet a session-ba kerül
-        }
         Task {
             await session.send(text) { delta in
                 streamText += delta
             }
             streamText = ""
         }
+    }
+}
+
+/// A Phantom Orb — beépített grafika, lebegő-animációval, sötét háttéren úszó fénnyel.
+struct PhantomOrbView: View {
+    var size: CGFloat = 160
+    @AppStorage("ui.reduceMotion") private var reduceMotion = false
+    @State private var float = false
+
+    var body: some View {
+        Image("PhantomOrb")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .blendMode(.screen)
+            .scaleEffect(float && !reduceMotion ? 1.04 : 1.0)
+            .offset(y: float && !reduceMotion ? -8 : 4)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: float)
+            .onAppear { float = true }
+            .accessibilityHidden(true)
     }
 }
 
@@ -199,7 +196,7 @@ struct BubbleView: View {
         HStack {
             if isUser { Spacer(minLength: 48) }
             Text(message.content)
-                .font(.body)
+                .font(Theme.ui(15))
                 .foregroundStyle(isUser ? .white : Theme.txt)
                 .textSelection(.enabled)
                 .padding(.horizontal, 14).padding(.vertical, 11)
