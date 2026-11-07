@@ -4,8 +4,8 @@
 <dict>
   <key>UIAppFonts</key>
   <array>
-    <string>Fonts/Sora.ttf</string>
-    <string>Fonts/Inter.ttf</string>
+    <string>Sora.ttf</string>
+    <string>Inter.ttf</string>
   </array>
   <key>CFBundleIdentifier</key>
   <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
