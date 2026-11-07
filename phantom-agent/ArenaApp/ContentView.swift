@@ -7,9 +7,11 @@ struct ContentView: View {
     @State private var showSettings = false
     @AppStorage("arena.url") private var arenaURL = "https://arena.ai/"
     @AppStorage("engine.kind") private var engineRaw = ChatEngineKind.native.rawValue
+    @AppStorage("chat.provider") private var providerRaw = ProviderKind.phantom.rawValue
 
     private var webURL: URL { URL(string: arenaURL) ?? URL(string: "https://arena.ai/")! }
     private var engine: ChatEngineKind { ChatEngineKind(rawValue: engineRaw) ?? .native }
+    private var provider: ProviderKind { ProviderKind(rawValue: providerRaw) ?? .phantom }
 
     var body: some View {
         ZStack {
@@ -51,29 +53,47 @@ struct ContentView: View {
         }
     }
 
-    // ── fejléc ──
+    // ── fejléc: élő gyűrű + egysoros cím + állapot ──
     private var header: some View {
-        HStack(spacing: 12) {
-            LiveRing(working: status.status.isWorking, size: 30)
+        HStack(spacing: 13) {
+            LiveRing(working: status.status.isWorking, size: 46)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Cortex Phantom Agent").font(.headline)
-                Text(engine == .native ? "Arena API" : "Agent workspace")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.txt3)
-                    .animation(Theme.softSpring, value: engineRaw)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Cortex Phantom Agent")
+                    .font(.system(.headline, design: .rounded).weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                HStack(spacing: 5) {
+                    Image(systemName: engine == .native ? (provider == .phantom ? "sparkles" : "cpu") : "globe")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Theme.pink)
+                    Text(engine == .native ? "Native chat · \(provider.label)" : "Agent workspace")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Theme.txt3)
+                        .lineLimit(1)
+                }
+                .animation(Theme.softSpring, value: engineRaw)
+                .animation(Theme.softSpring, value: providerRaw)
             }
-            Spacer()
+
+            Spacer(minLength: 8)
+
             StatusPill(status: status.status)
+
             Button { showSettings = true } label: {
                 Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.txt2)
                     .frame(width: 34, height: 34)
                     .background(Theme.surf2, in: Circle())
+                    .overlay(Circle().stroke(Theme.line, lineWidth: 1))
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Theme.bg.opacity(0.92))
+        .padding(.horizontal, 16).padding(.vertical, 11)
+        .background(
+            LinearGradient(colors: [Theme.bg.opacity(0.96), Theme.bg.opacity(0.88)],
+                           startPoint: .top, endPoint: .bottom)
+        )
         .overlay(Rectangle().fill(Theme.line).frame(height: 1), alignment: .bottom)
     }
 
