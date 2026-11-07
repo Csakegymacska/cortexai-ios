@@ -64,8 +64,39 @@ extension Color {
 /// The ambient light behind every screen: two soft radial glows and a grain-free black base.
 struct AuroraBackground: View {
     var intensity: Double = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        if reduceMotion {
+            staticAurora
+        } else {
+            // 7.4: élő auróra — a fényfoltok lassan úsznak (30 fps plafon, alacsony fogyasztás).
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let d1 = CGSize(width: sin(t * 0.11) * 60, height: cos(t * 0.09) * 44)
+                let d2 = CGSize(width: cos(t * 0.08) * 70, height: sin(t * 0.12) * 50)
+                let d3 = CGSize(width: sin(t * 0.07 + 1.7) * 55, height: cos(t * 0.10 + 0.6) * 40)
+                ZStack {
+                    Theme.ink
+                    RadialGradient(
+                        colors: [Theme.violet.opacity(0.30 * intensity), .clear],
+                        center: .init(x: 0.12 + d1.width / 1400, y: -0.05 + d1.height / 1400), startRadius: 8, endRadius: 520
+                    )
+                    RadialGradient(
+                        colors: [Theme.cyan.opacity(0.16 * intensity), .clear],
+                        center: .init(x: 1.05 + d2.width / 1400, y: 0.22 + d2.height / 1400), startRadius: 8, endRadius: 460
+                    )
+                    RadialGradient(
+                        colors: [Theme.magenta.opacity(0.13 * intensity), .clear],
+                        center: .init(x: 0.85 + d3.width / 1400, y: 1.05 + d3.height / 1400), startRadius: 8, endRadius: 520
+                    )
+                }
+                .ignoresSafeArea()
+            }
+        }
+    }
+
+    private var staticAurora: some View {
         ZStack {
             Theme.ink
             RadialGradient(
