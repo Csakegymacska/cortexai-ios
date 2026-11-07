@@ -1,11 +1,10 @@
-// ChatEngine — motorválasztás: NATÍV (Cortex Phantom / Arena API) vs AGENT WEB.
-// A natív két providerre bontva: a SAJÁT AI-nk (Cortex Phantom, cortanime.eu)
-// és a hivatalos Arena API (api.arena.ai). Az agent-web a munkamenetes agent-mód.
+// ChatEngine — a saját motorunk: NATÍV chat (Cortex Phantom / Phantom Core 2)
+// vagy WEB munkaterület (cortanime.eu/ai). Semmi külső — minden a miénk.
 import Foundation
 
 enum ChatEngineKind: String, CaseIterable, Identifiable {
     case native = "native"
-    case agentWeb = "agent-web"
+    case agentWeb = "web"
 
     var id: String { rawValue }
 
@@ -13,63 +12,31 @@ enum ChatEngineKind: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .native: return "Native chat"
-        case .agentWeb: return "Agent workspace (web)"
+        case .agentWeb: return "Web workspace"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .native: return "Cortex Phantom (our AI) or Arena API — fully native"
-        case .agentWeb: return "Full agent sessions with tools and workspace"
+        case .native: return "Cortex Phantom — our own brain, fully native"
+        case .agentWeb: return "Full agent sessions at cortanime.eu/ai"
         }
     }
 }
 
-/// Natív chat-providerek.
-enum ProviderKind: String, CaseIterable, Identifiable {
-    case phantom = "phantom"
-    case arena = "arena"
+/// Az üzenet — a natív chat alap-típusa.
+/// (Az ArenaMessage típus-alias marad a régi fájlban; ez a használt forma.)
+typealias ChatMessage = ArenaMessage
 
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .phantom: return "Cortex Phantom"
-        case .arena: return "Arena API"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .phantom: return "Our own AI — Phantom Core 2 pipeline"
-        case .arena: return "Frontier models via api.arena.ai"
-        }
-    }
-}
-
-/// A natív chat-üllés — provider-érzékeny.
+/// A natív chat-ülés — kizárólag a saját AI-nkkal (Cortex Phantom, Phantom Core 2).
 @MainActor
 final class ChatSession: ObservableObject {
     @Published var messages: [ArenaMessage] = []
     @Published var streaming = false
-    @Published var provider: ProviderKind = {
-        ProviderKind(rawValue: UserDefaults.standard.string(forKey: "chat.provider") ?? "") ?? .phantom
-    }()
-    @Published var model = UserDefaults.standard.string(forKey: "arena.model") ?? "coding-router-preview"
 
-    let arena = ArenaAPIClient()
     let cortex = CortexAPIClient()
 
-    var canSend: Bool {
-        !streaming && (provider == .phantom || !arena.apiKey.isEmpty)
-    }
-
-    func select(_ p: ProviderKind) {
-        guard p != provider else { return }
-        provider = p
-        UserDefaults.standard.set(p.rawValue, forKey: "chat.provider")
-        messages.removeAll()
-    }
+    var canSend: Bool { !streaming }
 
     func send(_ text: String, onDelta: @escaping (String) -> Void) async {
         guard !text.isEmpty, !streaming else { return }
@@ -78,12 +45,7 @@ final class ChatSession: ObservableObject {
         messages.append(ArenaMessage(role: "user", content: text))
         var reply = ""
         do {
-            switch provider {
-            case .phantom:
-                reply = try await cortex.stream(messages: messages, onDelta: onDelta)
-            case .arena:
-                reply = try await arena.stream(model: model, messages: messages, onDelta: onDelta)
-            }
+            reply = try await cortex.stream(messages: messages, onDelta: onDelta)
         } catch {
             reply = "Error: \(error.localizedDescription)"
         }
