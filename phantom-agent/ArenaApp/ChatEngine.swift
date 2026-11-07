@@ -1,28 +1,6 @@
-// ChatEngine — a saját motorunk: NATÍV chat (Cortex Phantom / Phantom Core 2)
-// vagy WEB munkaterület (cortanime.eu/ai). Semmi külső — minden a miénk.
+// ChatEngine — a saját motorunk: NATÍV chat (Cortex Phantom / Phantom Core 2).
+// Full natív — nincs webes nézet, minden a miénk.
 import Foundation
-
-enum ChatEngineKind: String, CaseIterable, Identifiable {
-    case native = "native"
-    case agentWeb = "web"
-
-    var id: String { rawValue }
-
-    /// UI-címkék — angolul, a kötés szerint.
-    var label: String {
-        switch self {
-        case .native: return "Native chat"
-        case .agentWeb: return "Web workspace"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .native: return "Cortex Phantom — our own brain, fully native"
-        case .agentWeb: return "Full agent sessions at cortanime.eu/ai"
-        }
-    }
-}
 
 /// Az üzenet — a natív chat alap-típusa.
 /// (Az ArenaMessage típus-alias marad a régi fájlban; ez a használt forma.)
