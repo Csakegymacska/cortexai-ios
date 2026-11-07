@@ -1,12 +1,14 @@
-// ContentView — az app háza: natív chat (Cortex Phantom) VAGY saját web-munkaterület.
-// Minden a miénk — arena.ai sehol.
+// ContentView — az agent-konzol háza: Chat / Activity / Console fülek,
+// élő misszió-sáv, állapot. Minden a miénk.
 import SwiftUI
 
 struct ContentView: View {
     @StateObject private var status = StatusClient()
+    @StateObject private var feed = AgentFeed()
     @State private var isLoading = false
     @State private var showSettings = false
     @State private var showIntro = true
+    @State private var tab = 0
     @AppStorage("web.url") private var webURLString = "https://cortanime.eu/ai"
     @AppStorage("engine.kind") private var engineRaw = ChatEngineKind.native.rawValue
 
@@ -15,23 +17,32 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            AuroraBackground()
+            PhantomBackdrop()
 
             VStack(spacing: 0) {
                 header
-                ZStack {
-                    switch engine {
-                    case .native:
-                        NativeChatView()
-                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    case .agentWeb:
-                        WebView(isLoading: $isLoading, url: webURL)
-                            .ignoresSafeArea(edges: .bottom)
-                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
+
+                if engine == .agentWeb {
+                    WebView(isLoading: $isLoading, url: webURL)
+                        .ignoresSafeArea(edges: .bottom)
+                    if isLoading { ProgressView().controlSize(.large).tint(Theme.pink) }
+                } else {
+                    MissionStrip(log: feed.log)
+                    AgentTabs(tab: $tab)
+                    ZStack {
+                        switch tab {
+                        case 0:
+                            NativeChatView()
+                                .transition(.opacity.combined(with: .scale(scale: 0.99)))
+                        case 1:
+                            ActivityView(feed: feed)
+                                .transition(.opacity)
+                        default:
+                            ConsoleView(feed: feed)
+                                .transition(.opacity)
+                        }
                     }
-                    if isLoading && engine == .agentWeb {
-                        ProgressView().controlSize(.large).tint(Theme.pink)
-                    }
+                    .animation(Theme.softSpring, value: tab)
                 }
                 statusBar
             }
@@ -48,6 +59,7 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) { SettingsView() }
         .onAppear {
             status.start(poll: 5)
+            feed.start(poll: 4)
             ActivityManager.shared.sync(with: status.status)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) {
                 withAnimation(.easeOut(duration: 0.55)) { showIntro = false }
@@ -60,24 +72,25 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             status.refresh()
+            feed.refresh()
         }
     }
 
-    // ── fejléc: élő gyűrű + egysoros cím + állapot ──
+    // ── fejléc ──
     private var header: some View {
         HStack(spacing: 13) {
-            LiveRing(working: status.status.isWorking, size: 46)
+            LiveRing(working: status.status.isWorking || feed.isWorking, size: 44)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Cortex Phantom Agent")
                     .font(Theme.display(17)).fontWeight(.bold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 HStack(spacing: 5) {
-                    Image(systemName: engine == .native ? "sparkles" : "globe")
+                    Image(systemName: "terminal")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(Theme.pink)
-                    Text(engine == .native ? "Native chat · our own brain" : "Web workspace · cortanime.eu")
+                    Text(engine == .native ? "Agent console · our own brain" : "Web workspace · cortanime.eu")
                         .font(Theme.ui(11))
                         .foregroundStyle(Theme.txt3)
                         .lineLimit(1)
@@ -97,19 +110,16 @@ struct ContentView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.txt2)
                     .frame(width: 34, height: 34)
-                    .background(Theme.surf2, in: Circle())
-                    .overlay(Circle().stroke(Theme.line, lineWidth: 1))
+                    .background(Theme.surf2, in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous).stroke(Theme.line, lineWidth: 1))
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(
-            LinearGradient(colors: [Theme.bg.opacity(0.96), Theme.bg.opacity(0.88)],
-                           startPoint: .top, endPoint: .bottom)
-        )
+        .background(Theme.bg.opacity(0.92))
         .overlay(Rectangle().fill(Theme.line).frame(height: 1), alignment: .bottom)
     }
 
-    // ── alsó sáv: a lépések — "mit bash-elek" élőben ──
+    // ── alsó sáv ──
     private var statusBar: some View {
         HStack(spacing: 10) {
             if status.status.isWorking {
@@ -125,7 +135,7 @@ struct ContentView: View {
                 Text("Ready when you are").font(Theme.ui(12)).foregroundStyle(Theme.txt3)
             }
             Spacer()
-            Button { status.refresh() } label: {
+            Button { status.refresh(); feed.refresh() } label: {
                 Image(systemName: "arrow.clockwise").font(.caption).foregroundStyle(Theme.txt3)
             }
         }
