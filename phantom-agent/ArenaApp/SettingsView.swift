@@ -23,7 +23,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AuroraBackground()
+                PhantomBackdrop()
 
                 ScrollView {
                     VStack(spacing: 14) {
@@ -108,8 +108,8 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionLabel(icon: "brain.head.profile", title: "The brain")
             HStack(spacing: 12) {
-                PhantomOrbView(size: 64)
-                    .frame(width: 64, height: 64)
+                CoreMark(size: 56, working: false)
+                    .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Phantom Core 2")
                         .font(Theme.display(16)).fontWeight(.bold)
