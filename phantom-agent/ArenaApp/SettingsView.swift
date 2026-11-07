@@ -8,6 +8,8 @@ struct SettingsView: View {
     @AppStorage("ui.reduceMotion") private var reduceMotion = false
 
     @State private var appeared = false
+    @State private var agentToken = ""
+    @State private var tokenSaved = false
 
     var body: some View {
         NavigationStack {
@@ -49,7 +51,10 @@ struct SettingsView: View {
         }
         .preferredColorScheme(.dark)
         .presentationBackground(Theme.bg)
-        .onAppear { appeared = true }
+        .onAppear {
+            appeared = true
+            tokenSaved = Keychain.read("phantom.agent.token") != nil
+        }
     }
 
     // ── A saját agyunk ──
@@ -105,6 +110,36 @@ struct SettingsView: View {
             Text("The Linux runner executes agent tasks and streams every step to this device.")
                 .font(Theme.ui(11))
                 .foregroundStyle(Theme.txt3)
+            FieldBox {
+                SecureField(tokenSaved ? "Runner token saved — replace to change" : "Runner token (agent access)", text: $agentToken)
+                    .keyboardType(.URL)
+            }
+            HStack(spacing: 10) {
+                GlowButton(title: "Save token", icon: "key.fill") {
+                    let k = agentToken.trimmingCharacters(in: .whitespaces)
+                    guard !k.isEmpty else { return }
+                    Keychain.save(k, for: "phantom.agent.token")
+                    agentToken = ""
+                    tokenSaved = true
+                }
+                if tokenSaved {
+                    Button {
+                        Keychain.delete("phantom.agent.token")
+                        tokenSaved = false
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trash")
+                            Text("Remove").fontWeight(.semibold)
+                        }
+                        .font(Theme.ui(14))
+                        .foregroundStyle(Theme.pink)
+                        .padding(.horizontal, 14).padding(.vertical, 11)
+                        .background(Theme.surf2, in: RoundedRectangle(cornerRadius: Theme.rSm, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: Theme.rSm).stroke(Theme.pink.opacity(0.35), lineWidth: 1))
+                    }
+                    .buttonStyle(PressableStyle())
+                }
+            }
             HStack(spacing: 6) {
                 Image(systemName: "terminal")
                 Text("python3 phantom_runner.py")
