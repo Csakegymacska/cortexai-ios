@@ -81,7 +81,10 @@ struct RichMessageView: View {
                 case .text(let t):
                     InlineRichText(t)
                 case .code(let lang, let code):
-                    if isTerminal(lang, code) {
+                    if lang == "run" {
+                        // eszköz-hívás — terminál-animációval
+                        TerminalBlockView(code: code.hasPrefix("$ ") ? code : "$ " + code, live: streaming)
+                    } else if isTerminal(lang, code) {
                         TerminalBlockView(code: code, live: streaming)
                     } else {
                         CodeBlockView(lang: lang, code: code)
