@@ -68,9 +68,15 @@ final class AccountStore: ObservableObject {
         if let (data, resp) = try? await session.data(for: req),
            (resp as? HTTPURLResponse)?.statusCode == 200 {
             let obj = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
-            if let u = obj["user"] as? [String: Any],
-               let d = try? JSONSerialization.data(withJSONObject: u) {
-                user = try? JSONDecoder().decode(AccountUser.self, from: d)
+            if let u = obj["user"] as? [String: Any] {
+                if let d = try? JSONSerialization.data(withJSONObject: u),
+                   let decoded = try? JSONDecoder().decode(AccountUser.self, from: d) {
+                    user = decoded
+                } else {
+                    user = AccountUser(id: u["id"] as? Int, username: u["username"] as? String,
+                                       email: u["email"] as? String, avatar: u["avatar"] as? String,
+                                       credits: (u["credits"] as? Double) ?? (u["credits"] as? Int).map(Double.init))
+                }
                 persist()
                 return
             }
@@ -149,8 +155,18 @@ final class AccountStore: ObservableObject {
             let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
             let obj = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
             if (200..<300).contains(code), let u = obj["user"] as? [String: Any] {
-                if let data = try? JSONSerialization.data(withJSONObject: u) {
-                    user = try? JSONDecoder().decode(AccountUser.self, from: data)
+                if let data = try? JSONSerialization.data(withJSONObject: u),
+                   let decoded = try? JSONDecoder().decode(AccountUser.self, from: data) {
+                    user = decoded
+                } else {
+                    // 7.4: a dekóder soha ne hallgasson el — kézi kivétel tartaléknak.
+                    user = AccountUser(id: u["id"] as? Int, username: u["username"] as? String,
+                                       email: u["email"] as? String, avatar: u["avatar"] as? String,
+                                       credits: (u["credits"] as? Double) ?? (u["credits"] as? Int).map(Double.init))
+                }
+                if user == nil {
+                    lastError = "Sign-in succeeded but the account could not be read."
+                    return false
                 }
                 persist()
                 // A bejelentkezési cookie mentése — ettől marad meg a munkamenet.
