@@ -69,7 +69,8 @@ final class ChatSession: ObservableObject {
             // 1) az agy válaszol — streamelve (eszköz-döntéssel is lehet)
             var reply = ""
             do {
-                reply = try await cortex.stream(messages: brainHistory(), onDelta: onDelta)
+                // A „phantom" fokozat a legerősebb agy: többjelöltes konstíciós önkritika.
+                reply = try await cortex.stream(messages: brainHistory(), tier: "phantom", onDelta: onDelta)
             } catch {
                 reply = "Error: \(error.localizedDescription)"
             }
@@ -101,16 +102,30 @@ final class ChatSession: ObservableObject {
     }
 
     /// ```run``` (vagy $-promptos bash) blokk kinyerése — az eszköz-hívás.
+    /// Ha a TELJES válasz egyetlen shell kód-blokk, az is eszköz-hívás (a protokoll szerint).
     static func runBlock(in s: String) -> String? {
-        for b in parseRich(s) {
-            if case .code(let lang, let code) = b.kind {
-                if lang == "run" {
-                    return code.hasPrefix("$ ") ? String(code.dropFirst(2)) : code
-                }
-                if lang == "bash" && code.hasPrefix("$ ") {
-                    return String(code.dropFirst(2))
-                }
+        let blocks = parseRich(s)
+        let prose = blocks.compactMap { b -> String? in
+            if case .text(let t) = b.kind { return t }
+            return nil
+        }.joined().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let codeBlocks: [(String, String)] = blocks.compactMap { b in
+            if case .code(let lang, let code) = b.kind { return (lang, code) }
+            return nil
+        }
+
+        // teljes válasz = egyetlen shell blokk → parancs
+        if prose.isEmpty, codeBlocks.count == 1 {
+            let (lang, code) = codeBlocks[0]
+            if lang == "run" || shellLangs.contains(lang) {
+                return code.hasPrefix("$ ") ? String(code.dropFirst(2)) : code
             }
+        }
+
+        for (lang, code) in codeBlocks {
+            if lang == "run" { return code.hasPrefix("$ ") ? String(code.dropFirst(2)) : code }
+            if shellLangs.contains(lang) && code.hasPrefix("$ ") { return String(code.dropFirst(2)) }
         }
         return nil
     }
