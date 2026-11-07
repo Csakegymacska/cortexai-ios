@@ -26,8 +26,9 @@ struct SettingsView: View {
                     Section("Account") {
                         if account.isLoggedIn {
                             HStack(spacing: 12) {
+                                let avatarSnapshot = avatarImage
                                 PhotosPicker(selection: $avatarItem, matching: .images) {
-                                    if let img = avatarImage {
+                                    if let img = avatarSnapshot {
                                         Image(uiImage: img)
                                             .resizable()
                                             .scaledToFill()
