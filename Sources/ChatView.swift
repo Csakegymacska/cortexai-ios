@@ -189,11 +189,21 @@ struct ChatView: View {
         CortexGlassGroup(spacing: 10) {
             HStack(spacing: 12) {
             Button { state.sheet = .library } label: {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Theme.text)
-                    .frame(width: 38, height: 38)
-                    .cortexGlass(Circle(), interactive: true)
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.system(size: 13.5, weight: .semibold))
+                    Text("Chats")
+                        .font(.system(size: 13.5, weight: .semibold))
+                    if state.sortedConversations.count > 1 {
+                        Text("\(state.sortedConversations.count)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Theme.textFaint)
+                    }
+                }
+                .foregroundStyle(Theme.text)
+                .padding(.horizontal, 12)
+                .frame(height: 38)
+                .cortexGlass(Capsule(), interactive: true)
             }
             .accessibilityLabel("Chats")
             .accessibilityIdentifier("chat.library")
